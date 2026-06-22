@@ -1,0 +1,22 @@
+version: '3.8'
+services:
+  db:
+    image: supabase/postgres:15.1-1.10.0.100
+    ports:
+      - "5432:5432"
+    environment:
+      POSTGRES_PASSWORD: postgres
+    volumes:
+      - db_data:/var/lib/postgresql/data
+  studio:
+    image: supabase/studio:2023.0.0
+    ports:
+      - "54321:54321"
+    environment:
+      SUPABASE_URL: http://localhost:5432
+      SUPABASE_ANON_KEY: eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZS1kZW1vIiwicm9sZSI6ImFub24iLCJleHAiOjE5ODM4MTI5OTZ9.CRXP1A7WOeoJeXkeKUE3EqNWvWryNO44Z2Hd3UOWFZM
+      SUPABASE_SERVICE_ROLE_KEY: eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZS1kZW1vIiwicm9sZSI6InNlcnZpY2Vfcm9sZSIsImV4cCI6MTk4MzgxMjk5Nn0.EGX2Zf_WJ75Z0aM9T_gnj-6-A-y2W_d7T0x-02a_d8A
+    depends_on:
+      - db
+volumes:
+  db_data:
