@@ -1,28 +1,21 @@
-{
-  "name": "rga-people",
-  "version": "0.1.0",
-  "private": true,
-  "scripts": {
-    "dev": "next dev",
-    "build": "next build",
-    "start": "next start",
-    "lint": "next lint"
-  },
-  "dependencies": {
-    "next": "^14.0.4",
-    "react": "^18",
-    "react-dom": "^18",
-    "supabase": "^1.115.4"
-  },
-  "devDependencies": {
-    "@types/node": "^20",
-    "@types/react": "^18",
-    "@types/react-dom": "^18",
-    "autoprefixer": "^10.0.1",
-    "eslint": "^8",
-    "eslint-config-next": "14.0.4",
-    "postcss": "^8",
-    "tailwindcss": "^3.3.0",
-    "typescript": "^5"
-  }
-}
+# ============================================================
+# Portal do Colaborador RGA - Variáveis de Ambiente
+# ============================================================
+# Renomeie este arquivo para .env.local e preencha com os
+# valores reais do seu projeto Supabase.
+# ============================================================
+
+# URL pública do projeto Supabase
+NEXT_PUBLIC_SUPABASE_URL=https://SEU_PROJETO.supabase.co
+
+# Chave pública (anon) do Supabase — usada no cliente
+NEXT_PUBLIC_SUPABASE_ANON_KEY=sua_anon_key_aqui
+
+# ⚠️ Chave de SERVICE ROLE do Supabase
+# NUNCA exponha esta chave no cliente. Usada apenas em Server Actions
+# para operações privilegiadas (convites, signOut forçado, etc.)
+SUPABASE_SERVICE_ROLE_KEY=sua_service_role_key_aqui
+
+# URL pública do site (usada para gerar links de convite)
+# Exemplo Vercel: https://rga-people.vercel.app
+NEXT_PUBLIC_SITE_URL=https://seu-dominio.vercel.app
