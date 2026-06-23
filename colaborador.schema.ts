@@ -4,12 +4,12 @@ import { useTransition } from "react";
 import { useForm } from "react-hook-form";
 import { zodResolver } from "@hookform/resolvers/zod";
 import toast from "react-hot-toast";
-import { X, Loader2, Save } from "lucide-react";
+import { X, Loader2, Send } from "lucide-react";
 import {
-  editarColaboradorSchema,
-  type EditarColaboradorInput,
+  convidarColaboradorSchema,
+  type ConvidarColaboradorInput,
 } from "@/lib/schemas/colaborador.schema";
-import { editarColaborador } from "@/app/actions/admin-colaboradores";
+import { convidarColaborador } from "@/app/actions/admin-colaboradores";
 
 interface Cargo {
   id: string;
@@ -17,22 +17,13 @@ interface Cargo {
   nivel: string | null;
 }
 
-interface Colaborador {
-  id: string;
-  nome_completo: string;
-  email: string;
-  cargo: { id: string; nome: string } | null;
-}
-
 interface Props {
-  colaborador: Colaborador;
   cargos: Cargo[];
   tenantSlug: string;
   onClose: () => void;
 }
 
-export default function EditarColaboradorModal({
-  colaborador,
+export default function ConvidarColaboradorModal({
   cargos,
   tenantSlug,
   onClose,
@@ -43,19 +34,13 @@ export default function EditarColaboradorModal({
     register,
     handleSubmit,
     formState: { errors },
-  } = useForm<EditarColaboradorInput>({
-    resolver: zodResolver(editarColaboradorSchema),
-    defaultValues: {
-      perfil_id: colaborador.id,
-      nome_completo: colaborador.nome_completo,
-      cargo_id: colaborador.cargo?.id ?? "",
-      salario: null,
-    },
+  } = useForm<ConvidarColaboradorInput>({
+    resolver: zodResolver(convidarColaboradorSchema),
   });
 
-  const onSubmit = (data: EditarColaboradorInput) => {
+  const onSubmit = (data: ConvidarColaboradorInput) => {
     startTransition(async () => {
-      const r = await editarColaborador(tenantSlug, data);
+      const r = await convidarColaborador(tenantSlug, data);
       if (r.success) {
         toast.success(r.message);
         onClose();
@@ -75,10 +60,9 @@ export default function EditarColaboradorModal({
         onClick={(e) => e.stopPropagation()}
       >
         <div className="px-6 py-4 border-b border-gray-200 flex items-center justify-between">
-          <div>
-            <h2 className="font-semibold text-gray-900">Editar colaborador</h2>
-            <p className="text-xs text-gray-500">{colaborador.email}</p>
-          </div>
+          <h2 className="font-semibold text-gray-900">
+            Convidar novo colaborador
+          </h2>
           <button
             onClick={onClose}
             className="p-1 hover:bg-gray-100 rounded-lg text-gray-500"
@@ -88,15 +72,14 @@ export default function EditarColaboradorModal({
         </div>
 
         <form onSubmit={handleSubmit(onSubmit)} className="p-6 space-y-4">
-          <input type="hidden" {...register("perfil_id")} />
-
           <div>
             <label className="block text-sm font-medium text-gray-700 mb-1">
-              Nome completo
+              Nome completo <span className="text-red-500">*</span>
             </label>
             <input
               type="text"
               {...register("nome_completo")}
+              placeholder="Ex.: Maria Silva"
               className="w-full px-3 py-2 border border-gray-300 rounded-lg text-sm focus:ring-2 focus:ring-indigo-500 outline-none"
             />
             {errors.nome_completo && (
@@ -108,12 +91,33 @@ export default function EditarColaboradorModal({
 
           <div>
             <label className="block text-sm font-medium text-gray-700 mb-1">
-              Cargo
+              Email corporativo <span className="text-red-500">*</span>
+            </label>
+            <input
+              type="email"
+              {...register("email")}
+              placeholder="maria@empresa.com"
+              className="w-full px-3 py-2 border border-gray-300 rounded-lg text-sm focus:ring-2 focus:ring-indigo-500 outline-none"
+            />
+            {errors.email && (
+              <p className="text-xs text-red-600 mt-1">
+                {errors.email.message}
+              </p>
+            )}
+          </div>
+
+          <div>
+            <label className="block text-sm font-medium text-gray-700 mb-1">
+              Cargo <span className="text-red-500">*</span>
             </label>
             <select
               {...register("cargo_id")}
               className="w-full px-3 py-2 border border-gray-300 rounded-lg text-sm focus:ring-2 focus:ring-indigo-500 outline-none bg-white"
+              defaultValue=""
             >
+              <option value="" disabled>
+                Selecione um cargo
+              </option>
               {cargos.map((c) => (
                 <option key={c.id} value={c.id}>
                   {c.nome} {c.nivel ? `— ${c.nivel}` : ""}
@@ -127,26 +131,10 @@ export default function EditarColaboradorModal({
             )}
           </div>
 
-          <div>
-            <label className="block text-sm font-medium text-gray-700 mb-1">
-              Salário base (R$){" "}
-              <span className="text-xs text-gray-400 font-normal">
-                (opcional)
-              </span>
-            </label>
-            <input
-              type="number"
-              step="0.01"
-              min={0}
-              {...register("salario")}
-              placeholder="0,00"
-              className="w-full px-3 py-2 border border-gray-300 rounded-lg text-sm focus:ring-2 focus:ring-indigo-500 outline-none"
-            />
-            {errors.salario && (
-              <p className="text-xs text-red-600 mt-1">
-                {errors.salario.message}
-              </p>
-            )}
+          <div className="bg-indigo-50 border border-indigo-200 rounded-lg p-3 text-xs text-indigo-800">
+            📧 Um email de convite será enviado com link válido por{" "}
+            <strong>7 dias</strong>. O colaborador definirá a senha no primeiro
+            acesso.
           </div>
 
           <div className="flex justify-end gap-2 pt-2">
@@ -166,12 +154,12 @@ export default function EditarColaboradorModal({
               {isPending ? (
                 <>
                   <Loader2 className="w-4 h-4 animate-spin" />
-                  Salvando...
+                  Enviando...
                 </>
               ) : (
                 <>
-                  <Save className="w-4 h-4" />
-                  Salvar
+                  <Send className="w-4 h-4" />
+                  Enviar convite
                 </>
               )}
             </button>

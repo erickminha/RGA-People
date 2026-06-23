@@ -1,39 +1,83 @@
----
-name: ✨ Solicitação de feature
-about: Proponha uma nova funcionalidade
-title: '[FEATURE] '
-labels: enhancement
-assignees: ''
----
+"use server";
 
-## 🎯 Problema / Motivação
+import { createClient } from "@/lib/supabase/server";
+import { revalidatePath } from "next/cache";
 
-<!-- Que problema essa feature resolve? Para quem? -->
+interface DownloadContrachequeParams {
+  contrachequeId: string;
+  tenantSlug: string;
+}
 
-## 💡 Solução proposta
+interface DownloadContrachequeResult {
+  success: boolean;
+  url?: string;
+  message?: string;
+}
 
-<!-- Como você imagina que deveria funcionar? -->
+/**
+ * Gera URL assinada (válida por 60s) do contracheque no Storage
+ * e registra log de auditoria do download na tabela audit_logs.
+ */
+export async function gerarDownloadContracheque(
+  params: DownloadContrachequeParams
+): Promise<DownloadContrachequeResult> {
+  const { contrachequeId } = params;
+  const supabase = createClient();
 
-## 🔄 Alternativas consideradas
+  // 1. Valida usuário autenticado
+  const {
+    data: { user },
+    error: userError,
+  } = await supabase.auth.getUser();
 
-<!-- Outras abordagens que você pensou -->
+  if (userError || !user) {
+    return { success: false, message: "Sessão expirada. Faça login novamente." };
+  }
 
-## 📊 Hub/Módulo afetado
+  // 2. Busca o contracheque (RLS garante que só o dono ou RH veja)
+  const { data: contracheque, error: ccError } = await supabase
+    .from("contracheques")
+    .select("id, perfil_id, empresa_id, mes_ano, url_documento")
+    .eq("id", contrachequeId)
+    .single();
 
-- [ ] Hub 1 - Onboarding
-- [ ] Hub 2 - Identidade Visual
-- [ ] Hub 3 - Contracheques e Benefícios
-- [ ] Hub 4 - Férias e Ponto
-- [ ] Hub 5 - Avaliação de Desempenho
-- [ ] Hub 6 - Admin RH
-- [ ] Outro: ___
+  if (ccError || !contracheque) {
+    return {
+      success: false,
+      message: "Contracheque não encontrado ou acesso negado.",
+    };
+  }
 
-## 🎨 Mockups / Referências
+  // 3. Gera URL assinada do bucket "contracheques"
+  const { data: signed, error: signedError } = await supabase.storage
+    .from("contracheques")
+    .createSignedUrl(contracheque.url_documento, 60); // 60 segundos
 
-<!-- Imagens, links ou exemplos -->
+  if (signedError || !signed?.signedUrl) {
+    return {
+      success: false,
+      message: "Falha ao gerar link de download. Tente novamente.",
+    };
+  }
 
-## ✅ Critérios de aceite
+  // 4. Registra log de auditoria (LGPD/Compliance)
+  const { error: logError } = await supabase.from("audit_logs").insert({
+    acao: "DOWNLOAD_CONTRACHEQUE",
+    usuario_id: user.id,
+    empresa_id: contracheque.empresa_id,
+    metadados: {
+      contracheque_id: contracheque.id,
+      mes_ano: contracheque.mes_ano,
+      ip_user_agent: "server-action",
+    },
+  });
 
-- [ ]
-- [ ]
-- [ ]
+  if (logError) {
+    console.error("[audit_logs] Falha ao registrar:", logError.message);
+    // Não bloqueia o download, apenas registra erro
+  }
+
+  revalidatePath(`/c/${params.tenantSlug}/portal/contracheques`);
+
+  return { success: true, url: signed.signedUrl };
+}

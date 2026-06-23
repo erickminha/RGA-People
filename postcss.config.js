@@ -1,77 +1,80 @@
-# ============================================================
-# Portal do Colaborador RGA - .gitignore
-# Next.js 14 + Supabase + Vercel
-# ============================================================
+import { Calendar, AlertTriangle, CheckCircle2, Clock } from "lucide-react";
 
-# Dependencies
-node_modules/
-.pnp
-.pnp.js
-.yarn/install-state.gz
-.yarn/cache
-.yarn/unplugged
-.yarn/build-state.yml
+interface SaldoFeriasCardsProps {
+  saldo: {
+    disponiveis: number;
+    vencidos: number;
+    usados: number;
+    pendentes?: number;
+    periodoAquisitivo: string;
+  };
+}
 
-# Testing
-coverage/
-.nyc_output/
+export default function SaldoFeriasCards({ saldo }: SaldoFeriasCardsProps) {
+  const cards = [
+    {
+      label: "Dias Disponíveis",
+      valor: saldo.disponiveis,
+      Icon: Calendar,
+      bg: "bg-emerald-50",
+      text: "text-emerald-700",
+      border: "border-emerald-200",
+      hint: "Saldo livre para uso",
+    },
+    {
+      label: "Dias Vencidos",
+      valor: saldo.vencidos,
+      Icon: AlertTriangle,
+      bg: "bg-red-50",
+      text: "text-red-700",
+      border: "border-red-200",
+      hint: saldo.vencidos > 0 ? "⚠️ Use o quanto antes" : "Tudo em dia",
+    },
+    {
+      label: "Já Usufruídos",
+      valor: saldo.usados,
+      Icon: CheckCircle2,
+      bg: "bg-blue-50",
+      text: "text-blue-700",
+      border: "border-blue-200",
+      hint: "Aprovados e consumidos",
+    },
+    {
+      label: "Pendentes",
+      valor: saldo.pendentes ?? 0,
+      Icon: Clock,
+      bg: "bg-amber-50",
+      text: "text-amber-700",
+      border: "border-amber-200",
+      hint: "Aguardando aprovação",
+    },
+  ];
 
-# Next.js build output
-.next/
-out/
-build/
-dist/
-
-# Production
-*.tsbuildinfo
-next-env.d.ts
-
-# Vercel
-.vercel
-
-# Environment variables (NUNCA commitar segredos!)
-.env
-.env.local
-.env.development.local
-.env.test.local
-.env.production.local
-.env*.local
-
-# Logs
-*.log
-npm-debug.log*
-yarn-debug.log*
-yarn-error.log*
-pnpm-debug.log*
-lerna-debug.log*
-
-# Supabase
-supabase/.branches
-supabase/.temp
-
-# IDEs / Editores
-.vscode/
-!.vscode/extensions.json
-!.vscode/settings.json.example
-.idea/
-*.swp
-*.swo
-*.swn
-*~
-
-# OS
-.DS_Store
-Thumbs.db
-Desktop.ini
-$RECYCLE.BIN/
-
-# Certificados e chaves
-*.pem
-*.key
-*.crt
-
-# Cache de ferramentas
-.eslintcache
-.stylelintcache
-.turbo
-.cache/
+  return (
+    <section>
+      <div className="grid grid-cols-2 lg:grid-cols-4 gap-4">
+        {cards.map((c) => (
+          <div
+            key={c.label}
+            className={`p-5 rounded-xl border ${c.border} ${c.bg} transition-all hover:shadow-sm`}
+          >
+            <div className="flex items-center justify-between mb-3">
+              <c.Icon className={`w-5 h-5 ${c.text}`} />
+            </div>
+            <div className={`text-3xl font-bold ${c.text}`}>{c.valor}</div>
+            <div className="text-sm font-medium text-gray-700 mt-1">
+              {c.label}
+            </div>
+            <div className="text-xs text-gray-500 mt-1">{c.hint}</div>
+          </div>
+        ))}
+      </div>
+      <p className="text-xs text-gray-500 mt-3">
+        Período aquisitivo atual:{" "}
+        <span className="font-medium text-gray-700">
+          {saldo.periodoAquisitivo}
+        </span>
+      </p>
+    </section>
+  );
+}
