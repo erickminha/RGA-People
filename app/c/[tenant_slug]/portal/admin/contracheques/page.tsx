@@ -1,25 +1,46 @@
-import { createClient } from "@/lib/supabase/server";
-import { requireRhAdmin } from "@/lib/auth/guards";
+"use client";
+
+import { useState, useEffect } from "react";
+import { createClient } from "@/lib/supabase/client";
 import { FileText, Upload, Trash2 } from "lucide-react";
+import UploadContrachequesModal from "@/components/modules/admin/UploadContrachequesModal";
 
-interface PageProps {
+export default function AdminContrachequesPage({
+  params,
+}: {
   params: { tenant_slug: string };
-}
-
-export const dynamic = "force-dynamic";
-
-export default async function AdminContrachequesPage({ params }: PageProps) {
-  const guard = await requireRhAdmin(params.tenant_slug);
+}) {
+  const [contracheques, setContracheques] = useState<any[]>([]);
+  const [colaboradores, setColaboradores] = useState<any[]>([]);
+  const [isModalOpen, setIsModalOpen] = useState(false);
+  const [isLoading, setIsLoading] = useState(true);
   const supabase = createClient();
 
-  const { data: contracheques } = await supabase
-    .from("contracheques")
-    .select(`
-      *,
-      perfil:perfis(nome_completo)
-    `)
-    .eq("empresa_id", guard.empresaId)
-    .order("mes_ano", { ascending: false });
+  useEffect(() => {
+    const fetchData = async () => {
+      try {
+        const { data: contracheques } = await supabase
+          .from("contracheques")
+          .select(`
+            *,
+            perfil:perfis(nome_completo)
+          `)
+          .order("mes_ano", { ascending: false });
+
+        const { data: colaboradores } = await supabase
+          .from("perfis")
+          .select("id, nome_completo")
+          .eq("ativo", true);
+
+        setContracheques(contracheques || []);
+        setColaboradores(colaboradores || []);
+      } finally {
+        setIsLoading(false);
+      }
+    };
+
+    fetchData();
+  }, []);
 
   return (
     <div className="p-6 md:p-8 max-w-7xl mx-auto space-y-6">
@@ -37,7 +58,10 @@ export default async function AdminContrachequesPage({ params }: PageProps) {
             </p>
           </div>
         </div>
-        <button className="inline-flex items-center gap-2 px-4 py-2 bg-indigo-600 text-white rounded-lg hover:bg-indigo-700 transition-colors text-sm font-medium">
+        <button
+          onClick={() => setIsModalOpen(true)}
+          className="inline-flex items-center gap-2 px-4 py-2 bg-indigo-600 text-white rounded-lg hover:bg-indigo-700 transition-colors text-sm font-medium"
+        >
           <Upload className="w-4 h-4" />
           Subir Novo
         </button>
@@ -47,18 +71,32 @@ export default async function AdminContrachequesPage({ params }: PageProps) {
         <table className="w-full text-left border-collapse">
           <thead>
             <tr className="bg-gray-50 border-b border-gray-200">
-              <th className="px-6 py-4 text-xs font-semibold text-gray-500 uppercase tracking-wider">Colaborador</th>
-              <th className="px-6 py-4 text-xs font-semibold text-gray-500 uppercase tracking-wider">Mês/Ano</th>
-              <th className="px-6 py-4 text-xs font-semibold text-gray-500 uppercase tracking-wider">Arquivo</th>
-              <th className="px-6 py-4 text-xs font-semibold text-gray-500 uppercase tracking-wider text-right">Ações</th>
+              <th className="px-6 py-4 text-xs font-semibold text-gray-500 uppercase tracking-wider">
+                Colaborador
+              </th>
+              <th className="px-6 py-4 text-xs font-semibold text-gray-500 uppercase tracking-wider">
+                Mês/Ano
+              </th>
+              <th className="px-6 py-4 text-xs font-semibold text-gray-500 uppercase tracking-wider">
+                Arquivo
+              </th>
+              <th className="px-6 py-4 text-xs font-semibold text-gray-500 uppercase tracking-wider text-right">
+                Ações
+              </th>
             </tr>
           </thead>
           <tbody className="divide-y divide-gray-200">
-            {contracheques?.map((c) => (
+            {contracheques.map((c) => (
               <tr key={c.id} className="hover:bg-gray-50 transition-colors">
-                <td className="px-6 py-4 font-medium text-gray-900">{(c.perfil as any)?.nome_completo}</td>
+                <td className="px-6 py-4 font-medium text-gray-900">
+                  {(c.perfil as any)?.nome_completo}
+                </td>
                 <td className="px-6 py-4 text-sm text-gray-600">{c.mes_ano}</td>
-                <td className="px-6 py-4 text-sm text-gray-500 truncate max-w-xs">{c.url_documento}</td>
+                <td className="px-6 py-4 text-sm text-indigo-600 truncate max-w-xs">
+                  <a href={c.url_documento} target="_blank" rel="noopener noreferrer" className="hover:underline">
+                    {c.url_documento?.split("/").pop()}
+                  </a>
+                </td>
                 <td className="px-6 py-4 text-right">
                   <button className="p-2 text-gray-400 hover:text-red-600 transition-colors">
                     <Trash2 className="w-4 h-4" />
@@ -66,7 +104,7 @@ export default async function AdminContrachequesPage({ params }: PageProps) {
                 </td>
               </tr>
             ))}
-            {(!contracheques || contracheques.length === 0) && (
+            {contracheques.length === 0 && (
               <tr>
                 <td colSpan={4} className="px-6 py-12 text-center text-gray-500 italic">
                   Nenhum contracheque enviado ainda.
@@ -76,6 +114,13 @@ export default async function AdminContrachequesPage({ params }: PageProps) {
           </tbody>
         </table>
       </div>
+
+      <UploadContrachequesModal
+        isOpen={isModalOpen}
+        onClose={() => setIsModalOpen(false)}
+        colaboradores={colaboradores}
+        tenantSlug={params.tenant_slug}
+      />
     </div>
   );
 }
