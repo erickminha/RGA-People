@@ -73,6 +73,38 @@ export async function criarEmpresa(formData: FormData) {
     throw new Error("Erro ao criar empresa: " + error.message);
   }
 
+  // Criar cargos padrão para a nova empresa
+  const cargosPadrao = [
+    { 
+      nome: "Super Administrador", 
+      empresa_id: novaEmpresa.id, 
+      permissoes: { super_admin: true, rh_admin: true, gestor: true } 
+    },
+    { 
+      nome: "RH", 
+      empresa_id: novaEmpresa.id, 
+      permissoes: { rh_admin: true, gestor: true } 
+    },
+    { 
+      nome: "Gestor", 
+      empresa_id: novaEmpresa.id, 
+      permissoes: { gestor: true } 
+    },
+    { 
+      nome: "Colaborador", 
+      empresa_id: novaEmpresa.id, 
+      permissoes: {} 
+    },
+  ];
+
+  const { error: erroCargos } = await supabase
+    .from("cargos")
+    .insert(cargosPadrao);
+
+  if (erroCargos) {
+    console.error("Erro ao criar cargos padrão:", erroCargos);
+  }
+
   // Redirecionar para a página de gestão de empresas
   redirect(`/c/rga/portal/admin/empresas`);
 }

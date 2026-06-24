@@ -2,6 +2,7 @@
 
 import { useState } from "react";
 import { X, Loader2, Mail, User, Briefcase } from "lucide-react";
+import { enviarConvite } from "@/app/actions/admin-convites";
 
 interface ConvidarColaboradorModalProps {
   isOpen: boolean;
@@ -25,23 +26,32 @@ export default function ConvidarColaboradorModal({
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     if (!email || !nomeCompleto || !cargoId) {
-      setMensagem("Preencha todos os campos obrigatórios");
+      setMensagem("❌ Preencha todos os campos obrigatórios");
       return;
     }
 
     setIsLoading(true);
     try {
-      // Aqui você implementaria a chamada real para criar o convite
-      // Por enquanto, apenas simulamos
-      await new Promise((resolve) => setTimeout(resolve, 1500));
-      setMensagem("✅ Convite enviado com sucesso para " + email);
-      setTimeout(() => {
-        setEmail("");
-        setNomeCompleto("");
-        setCargoId("");
-        setMensagem("");
-        onClose();
-      }, 2000);
+      const formData = new FormData();
+      formData.append("email", email);
+      formData.append("nomeCompleto", nomeCompleto);
+      formData.append("cargoId", cargoId);
+      formData.append("tenantSlug", tenantSlug);
+
+      const resultado = await enviarConvite(formData);
+
+      if (resultado.success) {
+        setMensagem("✅ " + resultado.message);
+        setTimeout(() => {
+          setEmail("");
+          setNomeCompleto("");
+          setCargoId("");
+          setMensagem("");
+          onClose();
+        }, 2000);
+      } else {
+        setMensagem("❌ " + resultado.error);
+      }
     } catch (error) {
       setMensagem("❌ Erro ao enviar convite");
     } finally {
@@ -72,7 +82,8 @@ export default function ConvidarColaboradorModal({
               value={email}
               onChange={(e) => setEmail(e.target.value)}
               placeholder="colaborador@empresa.com"
-              className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-indigo-500"
+              disabled={isLoading}
+              className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-indigo-500 disabled:opacity-50"
             />
           </div>
 
@@ -86,7 +97,8 @@ export default function ConvidarColaboradorModal({
               value={nomeCompleto}
               onChange={(e) => setNomeCompleto(e.target.value)}
               placeholder="João Silva"
-              className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-indigo-500"
+              disabled={isLoading}
+              className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-indigo-500 disabled:opacity-50"
             />
           </div>
 
@@ -98,7 +110,8 @@ export default function ConvidarColaboradorModal({
             <select
               value={cargoId}
               onChange={(e) => setCargoId(e.target.value)}
-              className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-indigo-500"
+              disabled={isLoading}
+              className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-indigo-500 disabled:opacity-50"
             >
               <option value="">Selecione um cargo</option>
               {cargos.map((c) => (
@@ -121,7 +134,8 @@ export default function ConvidarColaboradorModal({
             <button
               type="button"
               onClick={onClose}
-              className="flex-1 px-4 py-2 border border-gray-300 text-gray-700 rounded-lg hover:bg-gray-50 transition-colors font-medium"
+              disabled={isLoading}
+              className="flex-1 px-4 py-2 border border-gray-300 text-gray-700 rounded-lg hover:bg-gray-50 transition-colors font-medium disabled:opacity-50"
             >
               Cancelar
             </button>
