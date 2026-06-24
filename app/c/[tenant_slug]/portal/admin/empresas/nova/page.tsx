@@ -1,5 +1,6 @@
 import { requireRhAdmin } from "@/lib/auth/guards";
-import { Building2, ArrowLeft, Info } from "lucide-react";
+import { criarEmpresa } from "@/app/actions/admin-empresas";
+import { ArrowLeft, Info, Building2 } from "lucide-react";
 import Link from "next/link";
 
 export default async function NovaEmpresaPage({
@@ -10,7 +11,7 @@ export default async function NovaEmpresaPage({
   await requireRhAdmin(params.tenant_slug);
 
   return (
-    <div className="p-6 md:p-8 max-w-3xl mx-auto space-y-6">
+    <div className="p-6 md:p-8 max-w-2xl mx-auto space-y-6">
       <header className="flex items-center gap-4">
         <Link 
           href={`/c/${params.tenant_slug}/portal/admin/empresas`}
@@ -25,32 +26,42 @@ export default async function NovaEmpresaPage({
       </header>
 
       <div className="bg-white rounded-xl border border-gray-200 shadow-sm p-6 space-y-6">
-        <form className="space-y-4">
-          <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-            <div className="space-y-2">
-              <label className="text-sm font-medium text-gray-700">Nome da Empresa</label>
-              <input 
-                type="text" 
-                placeholder="Ex: RGA Consultoria"
-                className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-indigo-500 outline-none"
-              />
-            </div>
-            <div className="space-y-2">
-              <label className="text-sm font-medium text-gray-700">Slug (URL)</label>
-              <input 
-                type="text" 
-                placeholder="ex: rga"
-                className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-indigo-500 outline-none"
-              />
-              <p className="text-[10px] text-gray-400 italic">O slug será usado na URL: /c/slug/portal</p>
-            </div>
+        <form action={criarEmpresa} className="space-y-4">
+          <div className="space-y-2">
+            <label className="text-sm font-medium text-gray-700 flex items-center gap-2">
+              <Building2 className="w-4 h-4" />
+              Nome da Empresa *
+            </label>
+            <input 
+              type="text" 
+              name="nome"
+              placeholder="Ex: RGA Consultoria"
+              required
+              className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-indigo-500 outline-none"
+            />
+            <p className="text-xs text-gray-400">O slug será gerado automaticamente a partir do nome</p>
+          </div>
+
+          <div className="space-y-2">
+            <label className="text-sm font-medium text-gray-700">Descrição (Opcional)</label>
+            <textarea 
+              name="descricao"
+              placeholder="Descrição breve sobre a empresa..."
+              rows={3}
+              className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-indigo-500 outline-none resize-none"
+            />
           </div>
 
           <div className="p-4 bg-blue-50 border border-blue-100 rounded-lg flex gap-3">
-            <Info className="w-5 h-5 text-blue-500 flex-shrink-0" />
-            <p className="text-sm text-blue-700">
-              <strong>Importante:</strong> Ao criar uma nova empresa, o sistema configurará automaticamente as tabelas e políticas de segurança necessárias para o novo tenant.
-            </p>
+            <Info className="w-5 h-5 text-blue-500 flex-shrink-0 mt-0.5" />
+            <div className="text-sm text-blue-700">
+              <p className="font-medium mb-1">Ao criar uma nova empresa:</p>
+              <ul className="list-disc list-inside space-y-1 text-xs">
+                <li>O sistema configurará automaticamente as tabelas necessárias</li>
+                <li>As políticas de segurança (RLS) serão aplicadas</li>
+                <li>Você poderá começar a convidar colaboradores imediatamente</li>
+              </ul>
+            </div>
           </div>
 
           <div className="pt-4 flex justify-end gap-3">
@@ -61,7 +72,7 @@ export default async function NovaEmpresaPage({
               Cancelar
             </Link>
             <button 
-              type="button"
+              type="submit"
               className="px-4 py-2 bg-indigo-600 text-white rounded-lg hover:bg-indigo-700 transition-colors font-medium shadow-sm"
             >
               Criar Empresa
