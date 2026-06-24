@@ -1,5 +1,8 @@
-import { createClient } from "@/lib/supabase/server";
-import { redirect } from "next/navigation";
+"use client";
+
+import { useState, useEffect } from "react";
+import { createClient } from "@/lib/supabase/client";
+import { useRouter } from "next/navigation";
 import Link from "next/link";
 import { 
   LayoutDashboard, 
@@ -13,29 +16,67 @@ import {
   BarChart3,
   LogOut 
 } from "lucide-react";
+import ViewModeSelector from "@/components/modules/admin/ViewModeSelector";
 
-export default async function PortalLayout({
+type ViewMode = "super_admin" | "rh" | "colaborador";
+
+export default function PortalLayout({
   children,
   params,
 }: {
   children: React.ReactNode;
   params: { tenant_slug: string };
 }) {
+  const [perfil, setPerfil] = useState<any>(null);
+  const [viewMode, setViewMode] = useState<ViewMode>("super_admin");
+  const [isLoading, setIsLoading] = useState(true);
+  const router = useRouter();
   const supabase = createClient();
-  const { data: { session } } = await supabase.auth.getSession();
 
-  if (!session) {
-    redirect(`/c/${params.tenant_slug}/login`);
+  useEffect(() => {
+    const loadData = async () => {
+      const { data: { session } } = await supabase.auth.getSession();
+      if (!session) {
+        router.push(`/c/${params.tenant_slug}/login`);
+        return;
+      }
+
+      const { data } = await supabase
+        .from("perfis")
+        .select("*, cargo:cargos(*)")
+        .eq("id", session.user.id)
+        .single();
+
+      setPerfil(data);
+
+      // Carregar modo de visualização salvo
+      const savedMode = localStorage.getItem("viewMode") as ViewMode | null;
+      if (savedMode && data?.cargo?.permissoes?.super_admin) {
+        setViewMode(savedMode);
+      }
+      setIsLoading(false);
+    };
+
+    loadData();
+  }, []);
+
+  if (isLoading) {
+    return (
+      <div className="flex h-screen items-center justify-center bg-gray-50">
+        <div className="text-center">
+          <div className="w-12 h-12 border-4 border-indigo-200 border-t-indigo-600 rounded-full animate-spin mx-auto mb-4"></div>
+          <p className="text-gray-500">Carregando...</p>
+        </div>
+      </div>
+    );
   }
 
-  const { data: perfil } = await supabase
-    .from("perfis")
-    .select("*, cargo:cargos(*)")
-    .eq("id", session.user.id)
-    .single();
-
-  const isRhAdmin = perfil?.cargo?.permissoes?.rh_admin || perfil?.cargo?.permissoes?.super_admin;
   const isSuperAdmin = perfil?.cargo?.permissoes?.super_admin;
+  const isRhAdmin = perfil?.cargo?.permissoes?.rh_admin || isSuperAdmin;
+
+  // Determinar se deve mostrar menu de RH baseado no modo de visualização
+  const showRhMenu = viewMode === "super_admin" ? isSuperAdmin : viewMode === "rh" ? isRhAdmin : false;
+  const showAdminMenu = viewMode === "super_admin" ? isSuperAdmin : false;
 
   const menuItems = [
     { label: "Dashboard", icon: LayoutDashboard, href: `/c/${params.tenant_slug}/portal` },
@@ -81,7 +122,7 @@ export default async function PortalLayout({
             </Link>
           ))}
 
-          {isRhAdmin && (
+          {showRhMenu && (
             <div className="pt-4 mt-4 border-t border-gray-100 space-y-1">
               <p className="px-3 text-[10px] font-bold text-gray-400 uppercase tracking-widest mb-2">
                 Administração RH
@@ -99,7 +140,7 @@ export default async function PortalLayout({
             </div>
           )}
 
-          {isSuperAdmin && (
+          {showAdminMenu && (
             <div className="pt-4 mt-4 border-t border-gray-100">
               <p className="px-3 text-[10px] font-bold text-gray-400 uppercase tracking-widest mb-2">
                 Gestão Global
@@ -115,8 +156,16 @@ export default async function PortalLayout({
           )}
         </nav>
 
-        <div className="p-4 border-t border-gray-100 bg-white sticky bottom-0">
-          <div className="flex items-center gap-3 px-3 py-2 mb-2">
+        <div className="p-4 border-t border-gray-100 bg-white sticky bottom-0 space-y-2">
+          {isSuperAdmin && (
+            <ViewModeSelector
+              currentMode={viewMode}
+              onModeChange={setViewMode}
+              isSuperAdmin={isSuperAdmin}
+            />
+          )}
+          
+          <div className="flex items-center gap-3 px-3 py-2">
             <div className="w-8 h-8 rounded-full bg-indigo-100 flex items-center justify-center text-indigo-700 font-bold text-xs">
               {perfil?.nome_completo?.charAt(0) || "U"}
             </div>
@@ -129,6 +178,7 @@ export default async function PortalLayout({
               </p>
             </div>
           </div>
+          
           <form action="/auth/signout" method="post">
             <button className="flex items-center gap-3 w-full px-3 py-2 text-gray-600 hover:bg-red-50 hover:text-red-700 rounded-lg transition-colors group">
               <LogOut className="w-5 h-5 text-gray-400 group-hover:text-red-600" />
