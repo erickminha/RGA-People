@@ -1,5 +1,4 @@
 "use client";
-
 import { useState } from "react";
 import { useParams, useRouter, useSearchParams } from "next/navigation";
 import { createClient } from "@/lib/supabase/client";
@@ -18,14 +17,13 @@ import {
  * Tela de Login do Portal do Colaborador (multi-tenant).
  *
  * Autentica via Supabase Auth (email/senha) e suporta recuperação de senha.
- * Após o login, redireciona para o portal do tenant correspondente.
+ * Após o login, redireciona para o portal da empresa correta do usuário.
  */
 export default function LoginPage() {
   const params = useParams();
   const router = useRouter();
   const searchParams = useSearchParams();
   const slug = (params?.tenant_slug as string) ?? "";
-
   const [email, setEmail] = useState("");
   const [senha, setSenha] = useState("");
   const [mostrarSenha, setMostrarSenha] = useState(false);
@@ -35,7 +33,6 @@ export default function LoginPage() {
   async function handleLogin(e: React.FormEvent) {
     e.preventDefault();
     setCarregando(true);
-
     try {
       const supabase = createClient();
       const { error } = await supabase.auth.signInWithPassword({
@@ -49,16 +46,32 @@ export default function LoginPage() {
             ? "E-mail ou senha incorretos."
             : "Não foi possível entrar. Tente novamente."
         );
+        setCarregando(false);
+        return;
+      }
+
+      // Buscar a empresa do usuário
+      const { data: perfil } = await supabase
+        .from("perfis")
+        .select("*, empresa:empresas(slug)")
+        .eq("id", (await supabase.auth.getUser()).data.user?.id)
+        .single();
+
+      if (!perfil || !perfil.empresa) {
+        toast.error("Perfil de usuário não encontrado.");
+        setCarregando(false);
         return;
       }
 
       toast.success("Bem-vindo(a) de volta!");
-      const destino = searchParams.get("next") ?? `/c/${slug}/portal`;
+      
+      // Redirecionar para a empresa correta do usuário
+      const empresaSlug = perfil.empresa.slug;
+      const destino = searchParams.get("next") ?? `/c/${empresaSlug}/portal`;
       router.push(destino);
       router.refresh();
-    } catch {
+    } catch (error) {
       toast.error("Erro inesperado. Tente novamente em instantes.");
-    } finally {
       setCarregando(false);
     }
   }
@@ -69,8 +82,8 @@ export default function LoginPage() {
       toast.error("Informe seu e-mail para recuperar a senha.");
       return;
     }
-    setCarregando(true);
 
+    setCarregando(true);
     try {
       const supabase = createClient();
       const { error } = await supabase.auth.resetPasswordForEmail(
@@ -82,6 +95,7 @@ export default function LoginPage() {
 
       if (error) {
         toast.error("Não foi possível enviar o e-mail de recuperação.");
+        setCarregando(false);
         return;
       }
 
@@ -98,151 +112,134 @@ export default function LoginPage() {
 
   return (
     <div className="min-h-screen flex">
-      {/* Painel lateral institucional (desktop) */}
-      <div className="hidden lg:flex lg:w-1/2 bg-gradient-to-br from-indigo-600 via-indigo-700 to-blue-800 relative overflow-hidden">
-        <div className="absolute inset-0 opacity-10">
-          <div className="absolute top-20 left-20 w-72 h-72 bg-white rounded-full blur-3xl" />
-          <div className="absolute bottom-20 right-20 w-96 h-96 bg-blue-300 rounded-full blur-3xl" />
-        </div>
-        <div className="relative z-10 flex flex-col justify-between p-12 text-white">
-          <div className="flex items-center gap-3">
-            <div className="p-2 bg-white/15 backdrop-blur rounded-xl">
-              <Building2 className="w-7 h-7" />
+      {/* Lado esquerdo - Branding */}
+      <div className="hidden lg:flex lg:w-1/2 bg-gradient-to-br from-indigo-600 to-indigo-900 flex-col justify-between p-12">
+        <div>
+          <div className="flex items-center gap-3 mb-12">
+            <div className="w-10 h-10 bg-white rounded-lg flex items-center justify-center">
+              <Building2 className="w-6 h-6 text-indigo-600" />
             </div>
-            <span className="text-2xl font-bold tracking-tight">
-              RGA People
-            </span>
+            <span className="text-2xl font-bold text-white">RGA People</span>
           </div>
-          <div className="space-y-6">
-            <h1 className="text-4xl font-bold leading-tight">
-              O seu portal de
-              <br />
-              gente e gestão.
-            </h1>
-            <p className="text-lg text-indigo-100 max-w-md">
-              Manual do colaborador, avaliações, pesquisa de clima, plano de
-              carreira e muito mais — tudo em um só lugar.
-            </p>
-          </div>
-          <p className="text-sm text-indigo-200">
-            © {new Date().getFullYear()} RGA Consultoria de RH. Todos os
-            direitos reservados.
+          <h1 className="text-4xl font-bold text-white mb-6">
+            Sistema de Gestão de Pessoas
+          </h1>
+          <p className="text-indigo-100 text-lg">
+            Gerencie colaboradores, férias, benefícios e pesquisas de clima em um único lugar.
           </p>
+        </div>
+        <div className="text-indigo-100 text-sm">
+          <p>© 2024 RGA Consultoria. Todos os direitos reservados.</p>
         </div>
       </div>
 
-      {/* Formulário */}
-      <div className="flex-1 flex items-center justify-center p-6 bg-gray-50">
+      {/* Lado direito - Formulário */}
+      <div className="w-full lg:w-1/2 flex items-center justify-center p-6 bg-gray-50">
         <div className="w-full max-w-md">
-          <div className="lg:hidden flex items-center gap-3 mb-8 justify-center">
-            <div className="p-2 bg-indigo-600 rounded-xl">
-              <Building2 className="w-6 h-6 text-white" />
-            </div>
-            <span className="text-2xl font-bold text-gray-900">RGA People</span>
+          <div className="mb-8">
+            <h2 className="text-3xl font-bold text-gray-900 mb-2">
+              {modoRecuperacao ? "Recuperar Senha" : "Bem-vindo(a)"}
+            </h2>
+            <p className="text-gray-600">
+              {modoRecuperacao
+                ? "Informe seu e-mail para receber instruções"
+                : "Faça login para acessar o portal"}
+            </p>
           </div>
 
-          <div className="bg-white rounded-2xl shadow-xl shadow-gray-200/50 border border-gray-100 p-8">
-            <div className="mb-8">
-              <h2 className="text-2xl font-bold text-gray-900">
-                {modoRecuperacao ? "Recuperar acesso" : "Acesse sua conta"}
-              </h2>
-              <p className="text-sm text-gray-500 mt-1">
-                {modoRecuperacao
-                  ? "Enviaremos um link de redefinição para o seu e-mail."
-                  : "Entre com seu e-mail corporativo para continuar."}
-              </p>
+          <form
+            onSubmit={modoRecuperacao ? handleRecuperacao : handleLogin}
+            className="space-y-4"
+          >
+            <div>
+              <label className="block text-sm font-medium text-gray-700 mb-2 flex items-center gap-2">
+                <Mail className="w-4 h-4" />
+                E-mail
+              </label>
+              <input
+                type="email"
+                value={email}
+                onChange={(e) => setEmail(e.target.value)}
+                placeholder="seu@email.com"
+                required
+                disabled={carregando}
+                className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-indigo-500 outline-none disabled:opacity-50"
+              />
             </div>
 
-            <form
-              onSubmit={modoRecuperacao ? handleRecuperacao : handleLogin}
-              className="space-y-5"
-            >
+            {!modoRecuperacao && (
               <div>
-                <label className="block text-sm font-medium text-gray-700 mb-1.5">
-                  E-mail corporativo
+                <label className="block text-sm font-medium text-gray-700 mb-2 flex items-center gap-2">
+                  <Lock className="w-4 h-4" />
+                  Senha
                 </label>
                 <div className="relative">
-                  <Mail className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-gray-400" />
                   <input
-                    type="email"
+                    type={mostrarSenha ? "text" : "password"}
+                    value={senha}
+                    onChange={(e) => setSenha(e.target.value)}
+                    placeholder="••••••••"
                     required
-                    value={email}
-                    onChange={(e) => setEmail(e.target.value)}
-                    placeholder="voce@empresa.com.br"
-                    className="w-full pl-10 pr-4 py-2.5 border border-gray-300 rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-indigo-500 focus:border-transparent transition"
+                    disabled={carregando}
+                    className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-indigo-500 outline-none disabled:opacity-50"
                   />
+                  <button
+                    type="button"
+                    onClick={() => setMostrarSenha(!mostrarSenha)}
+                    className="absolute right-3 top-1/2 -translate-y-1/2 text-gray-500 hover:text-gray-700"
+                  >
+                    {mostrarSenha ? (
+                      <EyeOff className="w-4 h-4" />
+                    ) : (
+                      <Eye className="w-4 h-4" />
+                    )}
+                  </button>
                 </div>
               </div>
+            )}
 
-              {!modoRecuperacao && (
-                <div>
-                  <div className="flex items-center justify-between mb-1.5">
-                    <label className="block text-sm font-medium text-gray-700">
-                      Senha
-                    </label>
-                    <button
-                      type="button"
-                      onClick={() => setModoRecuperacao(true)}
-                      className="text-xs font-medium text-indigo-600 hover:text-indigo-700"
-                    >
-                      Esqueci minha senha
-                    </button>
-                  </div>
-                  <div className="relative">
-                    <Lock className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-gray-400" />
-                    <input
-                      type={mostrarSenha ? "text" : "password"}
-                      required
-                      value={senha}
-                      onChange={(e) => setSenha(e.target.value)}
-                      placeholder="••••••••"
-                      className="w-full pl-10 pr-10 py-2.5 border border-gray-300 rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-indigo-500 focus:border-transparent transition"
-                    />
-                    <button
-                      type="button"
-                      onClick={() => setMostrarSenha((v) => !v)}
-                      className="absolute right-3 top-1/2 -translate-y-1/2 text-gray-400 hover:text-gray-600"
-                    >
-                      {mostrarSenha ? (
-                        <EyeOff className="w-4 h-4" />
-                      ) : (
-                        <Eye className="w-4 h-4" />
-                      )}
-                    </button>
-                  </div>
-                </div>
-              )}
-
-              <button
-                type="submit"
-                disabled={carregando}
-                className="w-full flex items-center justify-center gap-2 bg-indigo-600 text-white font-semibold py-2.5 rounded-lg hover:bg-indigo-700 disabled:opacity-60 disabled:cursor-not-allowed transition"
-              >
-                {carregando ? (
+            <button
+              type="submit"
+              disabled={carregando}
+              className="w-full px-4 py-2 bg-indigo-600 text-white rounded-lg hover:bg-indigo-700 transition-colors font-medium disabled:opacity-50 flex items-center justify-center gap-2"
+            >
+              {carregando ? (
+                <>
                   <Loader2 className="w-4 h-4 animate-spin" />
-                ) : (
-                  <>
-                    {modoRecuperacao ? "Enviar link" : "Entrar"}
-                    <ArrowRight className="w-4 h-4" />
-                  </>
-                )}
-              </button>
-
-              {modoRecuperacao && (
-                <button
-                  type="button"
-                  onClick={() => setModoRecuperacao(false)}
-                  className="w-full text-sm text-gray-500 hover:text-gray-700"
-                >
-                  Voltar para o login
-                </button>
+                  {modoRecuperacao ? "Enviando..." : "Entrando..."}
+                </>
+              ) : (
+                <>
+                  {modoRecuperacao ? "Enviar E-mail" : "Entrar"}
+                  <ArrowRight className="w-4 h-4" />
+                </>
               )}
-            </form>
-          </div>
+            </button>
+          </form>
 
-          <p className="text-center text-xs text-gray-400 mt-6">
-            Problemas para acessar? Fale com o RH da sua empresa.
-          </p>
+          {!modoRecuperacao && (
+            <div className="mt-6 text-center">
+              <button
+                type="button"
+                onClick={() => setModoRecuperacao(true)}
+                className="text-sm text-indigo-600 hover:text-indigo-700 font-medium"
+              >
+                Esqueceu sua senha?
+              </button>
+            </div>
+          )}
+
+          {modoRecuperacao && (
+            <div className="mt-6 text-center">
+              <button
+                type="button"
+                onClick={() => setModoRecuperacao(false)}
+                className="text-sm text-indigo-600 hover:text-indigo-700 font-medium"
+              >
+                Voltar ao login
+              </button>
+            </div>
+          )}
         </div>
       </div>
     </div>

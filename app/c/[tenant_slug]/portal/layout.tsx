@@ -90,6 +90,7 @@ export default function PortalLayout({
     { label: "Painel do RH", icon: ShieldCheck, href: `/c/${params.tenant_slug}/portal/admin` },
     { label: "Colaboradores", icon: Users, href: `/c/${params.tenant_slug}/portal/admin/colaboradores` },
     { label: "Férias (Gestão)", icon: Calendar, href: `/c/${params.tenant_slug}/portal/admin/ferias` },
+    { label: "Saldo de Férias", icon: Calendar, href: `/c/${params.tenant_slug}/portal/admin/ferias/saldo` },
     { label: "Contracheques (Upload)", icon: FileText, href: `/c/${params.tenant_slug}/portal/admin/contracheques` },
     { label: "Benefícios (Gestão)", icon: Heart, href: `/c/${params.tenant_slug}/portal/admin/beneficios` },
     { label: "Pesquisas de Clima", icon: BarChart3, href: `/c/${params.tenant_slug}/portal/admin/pesquisas` },
