@@ -1,72 +1,42 @@
 import Link from "next/link";
-import {
-  UserPlus,
-  MessageSquareHeart,
-  FileUp,
-  Gift,
-  Plane,
-  ArrowRight,
+import { 
+  Users, 
+  Calendar, 
+  FileText, 
+  Heart, 
+  BarChart3, 
+  Building2,
+  BookOpen 
 } from "lucide-react";
 
-interface Props {
-  tenantSlug: string;
-}
-
-export default function AtalhosRapidos({ tenantSlug }: Props) {
+export default function AtalhosRapidos({ tenantSlug, isSuperAdmin }: { tenantSlug: string, isSuperAdmin?: boolean }) {
   const atalhos = [
-    {
-      href: `/c/${tenantSlug}/portal/admin/colaboradores?novo=1`,
-      Icon: UserPlus,
-      label: "Convidar colaborador",
-      desc: "Envie convite por email",
-      cor: "bg-indigo-600 hover:bg-indigo-700",
-    },
-    {
-      href: `/c/${tenantSlug}/portal/admin/contracheques`,
-      Icon: FileUp,
-      label: "Contracheques",
-      desc: "Subir / gerenciar PDFs",
-      cor: "bg-emerald-600 hover:bg-emerald-700",
-    },
-    {
-      href: `/c/${tenantSlug}/portal/admin/beneficios`,
-      Icon: Gift,
-      label: "Benefícios",
-      desc: "Cadastrar parceiros",
-      cor: "bg-rose-600 hover:bg-rose-700",
-    },
-    {
-      href: `/c/${tenantSlug}/portal/admin/ferias`,
-      Icon: Plane,
-      label: "Histórico de Férias",
-      desc: "Ver todas as solicitações",
-      cor: "bg-amber-600 hover:bg-amber-700",
-    },
+    { label: "Colaboradores", icon: Users, href: `/c/${tenantSlug}/portal/admin/colaboradores`, color: "bg-blue-50 text-blue-600" },
+    { label: "Férias", icon: Calendar, href: `/c/${tenantSlug}/portal/admin/ferias`, color: "bg-amber-50 text-amber-600" },
+    { label: "Contracheques", icon: FileText, href: `/c/${tenantSlug}/portal/admin/contracheques`, color: "bg-indigo-50 text-indigo-600" },
+    { label: "Benefícios", icon: Heart, href: `/c/${tenantSlug}/portal/admin/beneficios`, color: "bg-rose-50 text-rose-600" },
+    { label: "Pesquisas", icon: BarChart3, href: `/c/${tenantSlug}/portal/admin/pesquisas`, color: "bg-emerald-50 text-emerald-600" },
+    { label: "Manuais", icon: BookOpen, href: `/c/${tenantSlug}/portal/admin/manual`, color: "bg-purple-50 text-purple-600" },
   ];
 
+  if (isSuperAdmin) {
+    atalhos.push({ label: "Empresas", icon: Building2, href: `/c/${tenantSlug}/portal/admin/empresas`, color: "bg-gray-50 text-gray-600" });
+  }
+
   return (
-    <section>
-      <h2 className="text-sm font-semibold text-gray-700 uppercase tracking-wider mb-3">
-        Ações rápidas
-      </h2>
-      <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-3">
-        {atalhos.map((a) => (
-          <Link
-            key={a.href}
-            href={a.href}
-            className={`group flex items-center gap-3 p-4 rounded-xl text-white transition-all shadow-sm hover:shadow-md ${a.cor}`}
-          >
-            <div className="p-2 bg-white/20 rounded-lg">
-              <a.Icon className="w-5 h-5" />
-            </div>
-            <div className="flex-1">
-              <div className="font-semibold text-sm">{a.label}</div>
-              <div className="text-xs text-white/80">{a.desc}</div>
-            </div>
-            <ArrowRight className="w-4 h-4 opacity-70 group-hover:translate-x-1 transition-transform" />
-          </Link>
-        ))}
-      </div>
-    </section>
+    <div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-4">
+      {atalhos.map((a) => (
+        <Link
+          key={a.href}
+          href={a.href}
+          className="flex flex-col items-center justify-center p-6 bg-white border border-gray-100 rounded-xl hover:shadow-md hover:border-indigo-100 transition-all group"
+        >
+          <div className={`p-3 rounded-lg ${a.color} mb-3 group-hover:scale-110 transition-transform`}>
+            <a.icon className="w-6 h-6" />
+          </div>
+          <span className="text-sm font-semibold text-gray-700">{a.label}</span>
+        </Link>
+      ))}
+    </div>
   );
 }
