@@ -1,6 +1,7 @@
 import { createClient } from "@/lib/supabase/server";
 import { requireRhAdmin } from "@/lib/auth/guards";
 import { Building2, Plus, Globe, CheckCircle2, XCircle } from "lucide-react";
+import Link from "next/link";
 
 export const dynamic = "force-dynamic";
 
@@ -9,7 +10,6 @@ export default async function GestaoEmpresasPage({
 }: {
   params: { tenant_slug: string };
 }) {
-  // Apenas Super Admin pode acessar esta página específica de gestão global
   const guard = await requireRhAdmin(params.tenant_slug);
   const supabase = createClient();
 
@@ -30,10 +30,13 @@ export default async function GestaoEmpresasPage({
             <p className="text-sm text-gray-500">Administre todos os tenants cadastrados no sistema</p>
           </div>
         </div>
-        <button className="inline-flex items-center justify-center gap-2 px-4 py-2 bg-indigo-600 text-white rounded-lg hover:bg-indigo-700 transition-colors font-medium shadow-sm">
+        <Link 
+          href={`/c/${params.tenant_slug}/portal/admin/empresas/nova`}
+          className="inline-flex items-center justify-center gap-2 px-4 py-2 bg-indigo-600 text-white rounded-lg hover:bg-indigo-700 transition-colors font-medium shadow-sm"
+        >
           <Plus className="w-4 h-4" />
           Nova Empresa
-        </button>
+        </Link>
       </header>
 
       <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
@@ -69,13 +72,6 @@ export default async function GestaoEmpresasPage({
             </div>
           </div>
         ))}
-      </div>
-      
-      <div className="bg-amber-50 border border-amber-200 rounded-lg p-4 flex gap-3">
-        <div className="text-amber-600 font-bold text-lg">!</div>
-        <p className="text-sm text-amber-800">
-          <strong>Nota de Super Admin:</strong> Esta página é restrita. A criação de novas empresas via interface está em modo de visualização. Atualmente, novos tenants devem ser configurados via script de inicialização para garantir a correta aplicação das políticas de RLS.
-        </p>
       </div>
     </div>
   );
