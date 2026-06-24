@@ -55,24 +55,13 @@ export async function middleware(request: NextRequest) {
   )
 
   const { data: { user } } = await supabase.auth.getUser()
-
   const pathname = request.nextUrl.pathname
-  const segments = pathname.split('/').filter(Boolean)
 
-  // Ignorar rotas de API, estáticos e login
-  if (
-    pathname.startsWith('/_next') || 
-    pathname.startsWith('/api') || 
-    pathname.includes('/login') ||
-    segments.length < 2
-  ) {
-    return response
-  }
-
-  // Proteção de rotas do portal: /[tenant_slug]/portal
+  // Proteção de rotas do portal: /c/[tenant_slug]/portal
   if (pathname.includes('/portal') && !user) {
-    const tenantSlug = segments[0]
-    return NextResponse.redirect(new URL(`/${tenantSlug}/login`, request.url))
+    const segments = pathname.split('/').filter(Boolean)
+    const tenantSlug = segments[1] // segments[0] é 'c'
+    return NextResponse.redirect(new URL(`/c/${tenantSlug}/login`, request.url))
   }
 
   return response
