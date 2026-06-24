@@ -1,5 +1,4 @@
 "use client";
-
 import Link from "next/link";
 import { useParams, usePathname } from "next/navigation";
 import {
@@ -11,6 +10,7 @@ import {
   Users,
   LogOut,
   MessageSquareHeart,
+  BookOpen,
 } from "lucide-react";
 
 const navItems = [
@@ -20,6 +20,7 @@ const navItems = [
   { href: "/portal/contracheques", label: "Contracheques", icon: FileText },
   { href: "/portal/avaliacao", label: "Avaliações", icon: Award },
   { href: "/portal/beneficios", label: "Benefícios", icon: Gift },
+  { href: "/portal/manual", label: "Manual / Cultura", icon: BookOpen },
 ];
 
 export default function PortalLayout({
@@ -30,7 +31,6 @@ export default function PortalLayout({
   const params = useParams();
   const pathname = usePathname();
   const slug = params?.tenant_slug as string;
-
   const base = `/c/${slug}`;
 
   return (
@@ -48,6 +48,7 @@ export default function PortalLayout({
               href === "/portal"
                 ? pathname === fullHref
                 : pathname.startsWith(fullHref);
+
             return (
               <Link
                 key={href}
@@ -86,7 +87,7 @@ export default function PortalLayout({
       </aside>
 
       {/* Conteúdo principal */}
-      <main className="flex-1 overflow-auto">{children}</main>
+      <main className="flex-1 overflow-auto bg-gray-50/50">{children}</main>
     </div>
   );
 }

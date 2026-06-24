@@ -3,7 +3,8 @@ import {
   UserPlus,
   MessageSquareHeart,
   FileUp,
-  Calendar,
+  Gift,
+  Plane,
   ArrowRight,
 } from "lucide-react";
 
@@ -23,23 +24,23 @@ export default function AtalhosRapidos({ tenantSlug }: Props) {
     {
       href: `/c/${tenantSlug}/portal/admin/contracheques`,
       Icon: FileUp,
-      label: "Subir contracheques",
-      desc: "Lote mensal em PDF",
+      label: "Contracheques",
+      desc: "Subir / gerenciar PDFs",
       cor: "bg-emerald-600 hover:bg-emerald-700",
     },
     {
-      href: `/c/${tenantSlug}/portal/admin/clima`,
-      Icon: MessageSquareHeart,
-      label: "Pesquisa de clima",
-      desc: "Criar / ver resultados",
+      href: `/c/${tenantSlug}/portal/admin/beneficios`,
+      Icon: Gift,
+      label: "Benefícios",
+      desc: "Cadastrar parceiros",
       cor: "bg-rose-600 hover:bg-rose-700",
     },
     {
-      href: `/c/${tenantSlug}/portal/admin`,
-      Icon: Calendar,
-      label: "Visão geral",
-      desc: "Indicadores do RH",
-      cor: "bg-violet-600 hover:bg-violet-700",
+      href: `/c/${tenantSlug}/portal/admin/ferias`,
+      Icon: Plane,
+      label: "Histórico de Férias",
+      desc: "Ver todas as solicitações",
+      cor: "bg-amber-600 hover:bg-amber-700",
     },
   ];
 
