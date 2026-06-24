@@ -179,7 +179,7 @@ export default function PortalLayout({
             </div>
           </div>
           
-          <form action="/auth/signout" method="post">
+          <form action="/api/auth/signout" method="post">
             <button className="flex items-center gap-3 w-full px-3 py-2 text-gray-600 hover:bg-red-50 hover:text-red-700 rounded-lg transition-colors group">
               <LogOut className="w-5 h-5 text-gray-400 group-hover:text-red-600" />
               <span className="font-medium">Sair</span>
