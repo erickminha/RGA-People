@@ -1,7 +1,7 @@
 import Link from "next/link";
 import {
   UserPlus,
-  Megaphone,
+  MessageSquareHeart,
   FileUp,
   Calendar,
   ArrowRight,
@@ -28,17 +28,17 @@ export default function AtalhosRapidos({ tenantSlug }: Props) {
       cor: "bg-emerald-600 hover:bg-emerald-700",
     },
     {
-      href: `/c/${tenantSlug}/portal/admin/noticias`,
-      Icon: Megaphone,
-      label: "Publicar notícia",
-      desc: "Comunicado interno",
-      cor: "bg-amber-600 hover:bg-amber-700",
+      href: `/c/${tenantSlug}/portal/admin/clima`,
+      Icon: MessageSquareHeart,
+      label: "Pesquisa de clima",
+      desc: "Criar / ver resultados",
+      cor: "bg-rose-600 hover:bg-rose-700",
     },
     {
-      href: `/c/${tenantSlug}/portal/admin/avaliacao`,
+      href: `/c/${tenantSlug}/portal/admin`,
       Icon: Calendar,
-      label: "Ciclo de avaliação",
-      desc: "Abrir/encerrar período",
+      label: "Visão geral",
+      desc: "Indicadores do RH",
       cor: "bg-violet-600 hover:bg-violet-700",
     },
   ];

@@ -10,10 +10,12 @@ import {
   Gift,
   Users,
   LogOut,
+  MessageSquareHeart,
 } from "lucide-react";
 
 const navItems = [
   { href: "/portal", label: "Início", icon: LayoutDashboard },
+  { href: "/portal/clima", label: "Pesquisa de Clima", icon: MessageSquareHeart },
   { href: "/portal/ferias", label: "Férias", icon: Plane },
   { href: "/portal/contracheques", label: "Contracheques", icon: FileText },
   { href: "/portal/avaliacao", label: "Avaliações", icon: Award },

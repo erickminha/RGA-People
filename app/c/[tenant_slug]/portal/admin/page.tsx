@@ -1,9 +1,11 @@
 import { createClient } from "@/lib/supabase/server";
 import { requireRhAdmin } from "@/lib/auth/guards";
-import { Shield, Users, Plane, FileText, Award } from "lucide-react";
+import { Shield, Users, Plane, FileText, Award, Smile } from "lucide-react";
 import KpiCard from "@/components/modules/admin/KpiCard";
 import AprovacoesFeriasPendentes from "@/components/modules/admin/AprovacoesFeriasPendentes";
 import AtalhosRapidos from "@/components/modules/admin/AtalhosRapidos";
+import DashboardCharts from "@/components/modules/admin/DashboardCharts";
+import type { PerguntaClima } from "@/lib/schemas/clima.schema";
 
 interface PageProps {
   params: { tenant_slug: string };
@@ -26,7 +28,8 @@ export default async function AdminDashboardPage({ params }: PageProps) {
     supabase
       .from("perfis")
       .select("id", { count: "exact", head: true })
-      .eq("empresa_id", guard.empresaId),
+      .eq("empresa_id", guard.empresaId)
+      .eq("ativo", true),
     supabase
       .from("ferias_solicitacoes")
       .select("id", { count: "exact", head: true })
@@ -60,6 +63,76 @@ export default async function AdminDashboardPage({ params }: PageProps) {
       .order("criado_em", { ascending: true })
       .limit(10),
   ]);
+
+  // ---- Dados para gráficos ----
+  const inicioAno = new Date(new Date().getFullYear(), 0, 1).toISOString();
+
+  const [{ data: feriasAno }, { data: pesquisaAberta }] = await Promise.all([
+    supabase
+      .from("ferias_solicitacoes")
+      .select("status")
+      .eq("empresa_id", guard.empresaId)
+      .gte("criado_em", inicioAno),
+    supabase
+      .from("pesquisas_clima")
+      .select("id, perguntas, criado_em")
+      .eq("empresa_id", guard.empresaId)
+      .order("criado_em", { ascending: false })
+      .limit(1)
+      .maybeSingle(),
+  ]);
+
+  // Distribuição de status de férias
+  const mapaStatus: Record<string, number> = {
+    aprovada: 0,
+    pendente: 0,
+    rejeitada: 0,
+    cancelada: 0,
+  };
+  (feriasAno ?? []).forEach((f: { status: string }) => {
+    if (f.status in mapaStatus) mapaStatus[f.status] += 1;
+  });
+  const statusFerias = [
+    { name: "Aprovadas", value: mapaStatus.aprovada },
+    { name: "Pendentes", value: mapaStatus.pendente },
+    { name: "Rejeitadas", value: mapaStatus.rejeitada },
+    { name: "Canceladas", value: mapaStatus.cancelada },
+  ];
+
+  // Médias de clima por dimensão (da pesquisa mais recente)
+  let climaDimensoes: { dimensao: string; media: number }[] = [];
+  let indiceClima = 0;
+  if (pesquisaAberta?.id) {
+    const perguntas = (pesquisaAberta.perguntas ?? []) as PerguntaClima[];
+    const escalas = perguntas.filter((p) => p.tipo === "escala");
+    const { data: respostasClima } = await supabase
+      .from("respostas_clima")
+      .select("respostas")
+      .eq("pesquisa_id", pesquisaAberta.id);
+
+    const linhas = (respostasClima ?? []) as {
+      respostas: Record<string, number | string>;
+    }[];
+
+    climaDimensoes = escalas.map((p) => {
+      const valores = linhas
+        .map((r) => Number(r.respostas?.[p.id]))
+        .filter((v) => !Number.isNaN(v) && v > 0);
+      const media = valores.length
+        ? valores.reduce((a, b) => a + b, 0) / valores.length
+        : 0;
+      return {
+        dimensao: p.dimensao || p.texto.slice(0, 12),
+        media: Number(media.toFixed(2)),
+      };
+    });
+
+    const validas = climaDimensoes.filter((d) => d.media > 0);
+    const mediaGeral = validas.length
+      ? validas.reduce((a, b) => a + b.media, 0) / validas.length
+      : 0;
+    indiceClima = Math.round((mediaGeral / 5) * 100);
+  }
 
   return (
     <div className="p-6 md:p-8 max-w-7xl mx-auto space-y-8">
@@ -113,7 +186,25 @@ export default async function AdminDashboardPage({ params }: PageProps) {
             cor="violet"
             hint="Sem feedback do gestor"
           />
+          <KpiCard
+            label="Índice de clima"
+            valor={indiceClima > 0 ? `${indiceClima}%` : "—"}
+            Icon={Smile}
+            cor="rose"
+            hint="Pesquisa mais recente"
+          />
         </div>
+      </section>
+
+      {/* Gráficos */}
+      <section>
+        <h2 className="text-sm font-semibold text-gray-700 uppercase tracking-wider mb-3">
+          Visão analítica
+        </h2>
+        <DashboardCharts
+          statusFerias={statusFerias}
+          climaDimensoes={climaDimensoes}
+        />
       </section>
 
       {/* Atalhos */}
