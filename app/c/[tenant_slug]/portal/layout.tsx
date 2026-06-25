@@ -13,8 +13,9 @@ import {
   ShieldCheck, 
   Building2,
   Users,
-  BarChart3,
-  LogOut 
+  LogOut,
+  MessageSquareHeart,
+  BarChart3
 } from "lucide-react";
 import ViewModeSelector from "@/components/modules/admin/ViewModeSelector";
 
@@ -80,21 +81,22 @@ export default function PortalLayout({
 
   const menuItems = [
     { label: "Dashboard", icon: LayoutDashboard, href: `/c/${params.tenant_slug}/portal` },
+    { label: "Documentos", icon: BookOpen, href: `/c/${params.tenant_slug}/portal/documentos` },
+    { label: "Pesquisa de Clima", icon: MessageSquareHeart, href: `/c/${params.tenant_slug}/portal/clima` },
     { label: "Minhas Férias", icon: Calendar, href: `/c/${params.tenant_slug}/portal/ferias` },
     { label: "Contracheques", icon: FileText, href: `/c/${params.tenant_slug}/portal/contracheques` },
     { label: "Benefícios", icon: Heart, href: `/c/${params.tenant_slug}/portal/beneficios` },
-    { label: "Manual do Colaborador", icon: BookOpen, href: `/c/${params.tenant_slug}/portal/manual` },
+    { label: "Avaliações", icon: BarChart3, href: `/c/${params.tenant_slug}/portal/avaliacao` },
   ];
 
   const adminItems = [
     { label: "Painel do RH", icon: ShieldCheck, href: `/c/${params.tenant_slug}/portal/admin` },
     { label: "Colaboradores", icon: Users, href: `/c/${params.tenant_slug}/portal/admin/colaboradores` },
+    { label: "Documentos (Gestão)", icon: BookOpen, href: `/c/${params.tenant_slug}/portal/admin/documentos` },
+    { label: "Pesquisa de Clima", icon: MessageSquareHeart, href: `/c/${params.tenant_slug}/portal/admin/clima` },
     { label: "Férias (Gestão)", icon: Calendar, href: `/c/${params.tenant_slug}/portal/admin/ferias` },
-    { label: "Saldo de Férias", icon: Calendar, href: `/c/${params.tenant_slug}/portal/admin/ferias/saldo` },
     { label: "Contracheques (Upload)", icon: FileText, href: `/c/${params.tenant_slug}/portal/admin/contracheques` },
     { label: "Benefícios (Gestão)", icon: Heart, href: `/c/${params.tenant_slug}/portal/admin/beneficios` },
-    { label: "Pesquisas de Clima", icon: BarChart3, href: `/c/${params.tenant_slug}/portal/admin/pesquisas` },
-    { label: "Manuais (Edição)", icon: BookOpen, href: `/c/${params.tenant_slug}/portal/admin/manual` },
   ];
 
   return (

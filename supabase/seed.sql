@@ -62,3 +62,19 @@ ON CONFLICT DO NOTHING;
 -- FROM u
 -- ON CONFLICT (id) DO UPDATE
 --   SET cargo_id = EXCLUDED.cargo_id, empresa_id = EXCLUDED.empresa_id;
+
+-- 4. Documentos Corporativos de Exemplo (Templates RGA)
+INSERT INTO public.documentos_corporativos (empresa_id, tipo, titulo, descricao, conteudo_md, exigir_aceite)
+VALUES
+  ('00000000-0000-0000-0000-000000000001', 'manual_colaborador', 'Manual Interno de Cultura', 
+   'Nossa cultura, valores e diretrizes fundamentais.', 
+   '# Manual Interno de Cultura\n\nBem-vindo à RGA! Este documento detalha nossa missão, visão e valores...\n\n## Nossos Valores\n1. Ética e Transparência\n2. Foco no Cliente\n3. Inovação Constante\n\n... (conteúdo completo via dashboard)', true),
+  
+  ('00000000-0000-0000-0000-000000000001', 'nr1', 'NR1 - Ordem de Serviço de Segurança', 
+   'Orientações obrigatórias de segurança do trabalho.', 
+   '# NR1 - Segurança e Medicina do Trabalho\n\nConforme a Norma Regulamentadora nº 1, seguem as orientações...\n\n## Deveres do Colaborador\n- Utilizar EPIs fornecidos\n- Seguir normas de segurança\n- Comunicar incidentes', true),
+  
+  ('00000000-0000-0000-0000-000000000001', 'pop_rh', 'Procedimento Operacional: Admissão', 
+   'Guia passo a passo para o processo de admissão.', 
+   '# POP RH - Processo de Admissão\n\n1. Coleta de documentos\n2. Abertura de conta\n3. Treinamento inicial', false)
+ON CONFLICT DO NOTHING;

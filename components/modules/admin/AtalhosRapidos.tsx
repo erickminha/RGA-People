@@ -4,19 +4,20 @@ import {
   Calendar, 
   FileText, 
   Heart, 
-  BarChart3, 
+  MessageSquareHeart, 
   Building2,
-  BookOpen 
+  BookOpen,
+  ArrowRight
 } from "lucide-react";
 
 export default function AtalhosRapidos({ tenantSlug, isSuperAdmin }: { tenantSlug: string, isSuperAdmin?: boolean }) {
   const atalhos = [
-    { label: "Colaboradores", icon: Users, href: `/c/${tenantSlug}/portal/admin/colaboradores`, color: "bg-blue-50 text-blue-600" },
+    { label: "Colaboradores", icon: Users, href: `/c/${tenantSlug}/portal/admin/colaboradores`, color: "bg-indigo-50 text-indigo-600" },
+    { label: "Documentos", icon: BookOpen, href: `/c/${tenantSlug}/portal/admin/documentos`, color: "bg-blue-50 text-blue-600" },
+    { label: "Clima", icon: MessageSquareHeart, href: `/c/${tenantSlug}/portal/admin/clima`, color: "bg-rose-50 text-rose-600" },
     { label: "Férias", icon: Calendar, href: `/c/${tenantSlug}/portal/admin/ferias`, color: "bg-amber-50 text-amber-600" },
-    { label: "Contracheques", icon: FileText, href: `/c/${tenantSlug}/portal/admin/contracheques`, color: "bg-indigo-50 text-indigo-600" },
-    { label: "Benefícios", icon: Heart, href: `/c/${tenantSlug}/portal/admin/beneficios`, color: "bg-rose-50 text-rose-600" },
-    { label: "Pesquisas", icon: BarChart3, href: `/c/${tenantSlug}/portal/admin/pesquisas`, color: "bg-emerald-50 text-emerald-600" },
-    { label: "Manuais", icon: BookOpen, href: `/c/${tenantSlug}/portal/admin/manual`, color: "bg-purple-50 text-purple-600" },
+    { label: "Contracheques", icon: FileText, href: `/c/${tenantSlug}/portal/admin/contracheques`, color: "bg-emerald-50 text-emerald-600" },
+    { label: "Benefícios", icon: Heart, href: `/c/${tenantSlug}/portal/admin/beneficios`, color: "bg-pink-50 text-pink-600" },
   ];
 
   if (isSuperAdmin) {
@@ -35,6 +36,7 @@ export default function AtalhosRapidos({ tenantSlug, isSuperAdmin }: { tenantSlu
             <a.icon className="w-6 h-6" />
           </div>
           <span className="text-sm font-semibold text-gray-700">{a.label}</span>
+          <ArrowRight className="w-3 h-3 mt-2 opacity-0 group-hover:opacity-100 transition-opacity" />
         </Link>
       ))}
     </div>
