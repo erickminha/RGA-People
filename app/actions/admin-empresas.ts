@@ -31,7 +31,7 @@ export async function criarEmpresa(formData: FormData) {
     .eq("id", session.user.id)
     .single();
 
-  if (!perfil?.cargo?.permissoes?.super_admin) {
+  if (!(perfil?.cargo as any)?.permissoes?.super_admin) {
     throw new Error("Sem permissão para criar empresas");
   }
 

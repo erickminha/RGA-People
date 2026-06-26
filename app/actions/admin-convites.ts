@@ -1,25 +1,14 @@
 "use server";
 
 import { createClient } from "@/lib/supabase/server";
+import { randomBytes } from "crypto";
+import { checkRhAdmin } from "@/lib/auth/guards";
+import { enviarEmailConvite } from "@/lib/email/resend";
 
 export async function enviarConvite(formData: FormData) {
-  const supabase = createClient();
-
-  // Validar sessão
-  const { data: { session } } = await supabase.auth.getSession();
-  if (!session) {
-    return { success: false, error: "Não autenticado" };
-  }
-
-  // Validar permissões
-  const { data: perfil } = await supabase
-    .from("perfis")
-    .select("*, cargo:cargos(*)")
-    .eq("id", session.user.id)
-    .single();
-
-  if (!perfil?.cargo?.permissoes?.rh_admin && !perfil?.cargo?.permissoes?.super_admin) {
-    return { success: false, error: "Sem permissão para enviar convites" };
+  const guard = await checkRhAdmin();
+  if (!guard) {
+    return { success: false, error: "Não autenticado ou sem permissão." };
   }
 
   const email = formData.get("email") as string;
@@ -32,17 +21,18 @@ export async function enviarConvite(formData: FormData) {
     return { success: false, error: "Preencha todos os campos obrigatórios" };
   }
 
-  // Validar formato de email
   const emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
   if (!emailRegex.test(email)) {
     return { success: false, error: "E-mail inválido" };
   }
 
+  const supabase = createClient();
+
   try {
-    // Buscar a empresa
+    // Buscar a empresa pelo slug
     const { data: empresa } = await supabase
       .from("empresas")
-      .select("id")
+      .select("id, nome")
       .eq("slug", tenantSlug)
       .single();
 
@@ -50,41 +40,75 @@ export async function enviarConvite(formData: FormData) {
       return { success: false, error: "Empresa não encontrada" };
     }
 
-    // Verificar se o convite já existe
+    // Verificar se já existe colaborador com esse email
+    const { data: existente } = await supabase
+      .from("perfis")
+      .select("id")
+      .eq("email", email.toLowerCase())
+      .eq("empresa_id", empresa.id)
+      .maybeSingle();
+
+    if (existente) {
+      return { success: false, error: "Já existe um colaborador com este e-mail nesta empresa." };
+    }
+
+    // Verificar se já há convite pendente válido
     const { data: conviteExistente } = await supabase
       .from("convites")
       .select("id")
-      .eq("email", email)
+      .eq("email", email.toLowerCase())
       .eq("empresa_id", empresa.id)
-      .eq("status", "pendente")
-      .single();
+      .eq("usado", false)
+      .gt("expira_em", new Date().toISOString())
+      .maybeSingle();
 
     if (conviteExistente) {
-      return { success: false, error: "Este e-mail já possui um convite pendente" };
+      return { success: false, error: "Este e-mail já possui um convite pendente." };
     }
 
-    // Criar o convite
-    const { data: novoConvite, error: erroConvite } = await supabase
+    // Gerar token único + validade 7 dias
+    const token = randomBytes(32).toString("hex");
+    const expiraEm = new Date(Date.now() + 7 * 24 * 60 * 60 * 1000);
+
+    // Criar o convite no banco
+    const { error: erroConvite } = await supabase
       .from("convites")
       .insert({
         email: email.toLowerCase(),
-        nome_completo: nomeCompleto.trim(),
+        token,
         cargo_id: cargoId,
         empresa_id: empresa.id,
-        status: "pendente",
-        token: crypto.getRandomValues(new Uint8Array(32)).toString(),
-      })
-      .select()
-      .single();
+        usado: false,
+        expira_em: expiraEm.toISOString(),
+      });
 
     if (erroConvite) {
       console.error("Erro ao criar convite:", erroConvite);
-      return { success: false, error: "Erro ao enviar convite: " + erroConvite.message };
+      return { success: false, error: "Erro ao criar convite: " + erroConvite.message };
     }
 
-    // TODO: Enviar e-mail com o link de convite
-    // Por enquanto, apenas retornamos sucesso
-    console.log(`Convite criado para ${email} na empresa ${empresa.id}`);
+    // Montar link de convite
+    const siteUrl =
+      process.env.NEXT_PUBLIC_SITE_URL?.replace(/\/$/, "") ??
+      "http://localhost:3000";
+    const linkConvite = `${siteUrl}/c/${tenantSlug}/convite/${token}`;
+
+    // Enviar email via Resend
+    const { error: emailError } = await enviarEmailConvite({
+      para: email.toLowerCase(),
+      nomeColaborador: nomeCompleto.trim(),
+      nomeEmpresa: empresa.nome,
+      linkConvite,
+    });
+
+    if (emailError) {
+      // Convite foi criado no banco, mas email falhou — não bloqueia o fluxo
+      console.error("Erro ao enviar email de convite:", emailError);
+      return {
+        success: true,
+        message: `Convite criado para ${email}, mas o email não pôde ser enviado. Compartilhe o link manualmente: ${linkConvite}`,
+      };
+    }
 
     return {
       success: true,
@@ -92,6 +116,6 @@ export async function enviarConvite(formData: FormData) {
     };
   } catch (error) {
     console.error("Erro ao enviar convite:", error);
-    return { success: false, error: "Erro ao enviar convite" };
+    return { success: false, error: "Erro interno ao enviar convite" };
   }
 }

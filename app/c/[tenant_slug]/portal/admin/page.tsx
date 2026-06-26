@@ -1,6 +1,6 @@
 "use client";
 
-import { useState, useEffect } from "react";
+import { useState, useEffect, useCallback } from "react";
 import { createClient } from "@/lib/supabase/client";
 import { useRouter } from "next/navigation";
 import {
@@ -11,21 +11,12 @@ import {
   Award,
   Smile,
   Plus,
-  TrendingUp,
-  AlertCircle,
 } from "lucide-react";
 import KpiCard from "@/components/modules/admin/KpiCard";
 import DashboardCharts from "@/components/modules/admin/DashboardCharts";
 import AtalhosRapidos from "@/components/modules/admin/AtalhosRapidos";
 import AprovacoesFeriasPendentes from "@/components/modules/admin/AprovacoesFeriasPendentes";
 import ConvidarColaboradorModal from "@/components/modules/admin/ConvidarColaboradorModal";
-
-interface PerguntaClima {
-  id: string;
-  tipo: string;
-  texto: string;
-  dimensao?: string;
-}
 
 export default function AdminPage({
   params,
@@ -37,65 +28,193 @@ export default function AdminPage({
   const [isConvidarOpen, setIsConvidarOpen] = useState(false);
   const [cargos, setCargos] = useState<any[]>([]);
   const router = useRouter();
-  const supabase = createClient();
 
-  useEffect(() => {
-    const carregarDados = async () => {
-      try {
-        // Buscar dados do admin
-        const { data: { session } } = await supabase.auth.getSession();
-        if (!session) {
-          router.push(`/c/${params.tenant_slug}/login`);
-          return;
-        }
+  const carregarDados = useCallback(async () => {
+    const supabase = createClient();
+    try {
+      // Verificar sessão
+      const {
+        data: { session },
+      } = await supabase.auth.getSession();
+      if (!session) {
+        router.push(`/c/${params.tenant_slug}/login`);
+        return;
+      }
 
-        const { data: perfil } = await supabase
+      // Buscar perfil do admin
+      const { data: perfil } = await supabase
+        .from("perfis")
+        .select("*, cargo:cargos(*)")
+        .eq("id", session.user.id)
+        .single();
+
+      if (
+        !perfil?.cargo?.permissoes?.rh_admin &&
+        !perfil?.cargo?.permissoes?.super_admin
+      ) {
+        router.push(`/c/${params.tenant_slug}/portal`);
+        return;
+      }
+
+      const empresaId = perfil.empresa_id;
+
+      // Buscar todos os dados em paralelo
+      const [
+        { count: totalColaboradores },
+        { count: feriasPendentes },
+        { count: contrachequesMes },
+        { count: avaliacoesAbertas },
+        { data: cargosData },
+        { data: solicitacoesPendentes },
+        { data: statusFeriasData },
+        { data: climaData },
+      ] = await Promise.all([
+        // Total de colaboradores ativos
+        supabase
           .from("perfis")
-          .select("*, cargo:cargos(*)")
-          .eq("id", session.user.id)
-          .single();
+          .select("id", { count: "exact", head: true })
+          .eq("empresa_id", empresaId)
+          .eq("ativo", true),
 
-        if (!perfil?.cargo?.permissoes?.rh_admin && !perfil?.cargo?.permissoes?.super_admin) {
-          router.push(`/c/${params.tenant_slug}/portal`);
-          return;
-        }
+        // Férias pendentes
+        supabase
+          .from("ferias_solicitacoes")
+          .select("id", { count: "exact", head: true })
+          .eq("empresa_id", empresaId)
+          .eq("status", "pendente"),
 
-        // Buscar cargos para o modal
-        const { data: cargosData } = await supabase
+        // Contracheques do mês atual
+        supabase
+          .from("contracheques")
+          .select("id", { count: "exact", head: true })
+          .eq("empresa_id", empresaId)
+          .gte(
+            "criado_em",
+            new Date(
+              new Date().getFullYear(),
+              new Date().getMonth(),
+              1
+            ).toISOString()
+          ),
+
+        // Avaliações abertas
+        supabase
+          .from("avaliacoes_desempenho")
+          .select("id", { count: "exact", head: true })
+          .eq("empresa_id", empresaId)
+          .eq("status", "aberta"),
+
+        // Cargos para o modal de convite
+        supabase
           .from("cargos")
           .select("*")
-          .eq("empresa_id", perfil.empresa_id);
-        setCargos(cargosData || []);
+          .eq("empresa_id", empresaId)
+          .order("nome"),
 
-        setDados({
-          nomeCompleto: perfil.nome_completo,
-          totalColaboradores: 5,
-          feriasPendentes: 2,
-          contrachequesMes: 3,
-          avaliacoesAbertas: 1,
-          indiceClima: 78,
-          statusFerias: [
-            { name: "Aprovadas", value: 8 },
-            { name: "Pendentes", value: 2 },
-            { name: "Rejeitadas", value: 1 },
-            { name: "Canceladas", value: 0 },
-          ],
-          climaDimensoes: [
-            { dimensao: "Liderança", media: 4.2 },
-            { dimensao: "Comunicação", media: 3.8 },
-            { dimensao: "Desenvolvimento", media: 4.0 },
-          ],
-          solicitacoesPendentes: [],
-        });
-      } catch (error) {
-        console.error("Erro ao carregar dados:", error);
-      } finally {
-        setIsLoading(false);
-      }
-    };
+        // Solicitações de férias pendentes com dados do colaborador
+        supabase
+          .from("ferias_solicitacoes")
+          .select(
+            `
+            id,
+            data_inicio,
+            data_fim,
+            criado_em,
+            perfil:perfis!ferias_solicitacoes_perfil_id_fkey (
+              id,
+              nome_completo,
+              email
+            )
+          `
+          )
+          .eq("empresa_id", empresaId)
+          .eq("status", "pendente")
+          .order("criado_em", { ascending: true })
+          .limit(20),
 
+        // Status de férias para gráfico
+        supabase
+          .from("ferias_solicitacoes")
+          .select("status")
+          .eq("empresa_id", empresaId),
+
+        // Dados de clima para gráfico
+        supabase
+          .from("respostas_clima")
+          .select("dimensao, nota")
+          .eq("empresa_id", empresaId)
+          .not("dimensao", "is", null)
+          .limit(500),
+      ]);
+
+      // Processar status de férias para o gráfico
+      const contagem: Record<string, number> = {
+        aprovada: 0,
+        pendente: 0,
+        rejeitada: 0,
+        cancelada: 0,
+      };
+      (statusFeriasData ?? []).forEach((s: any) => {
+        if (s.status in contagem) contagem[s.status]++;
+      });
+      const statusFerias = [
+        { name: "Aprovadas", value: contagem.aprovada },
+        { name: "Pendentes", value: contagem.pendente },
+        { name: "Rejeitadas", value: contagem.rejeitada },
+        { name: "Canceladas", value: contagem.cancelada },
+      ];
+
+      // Processar dimensões de clima para o gráfico
+      const dimensoesMap: Record<string, { soma: number; qtd: number }> = {};
+      (climaData ?? []).forEach((r: any) => {
+        if (!r.dimensao || r.nota == null) return;
+        if (!dimensoesMap[r.dimensao]) {
+          dimensoesMap[r.dimensao] = { soma: 0, qtd: 0 };
+        }
+        dimensoesMap[r.dimensao].soma += Number(r.nota);
+        dimensoesMap[r.dimensao].qtd++;
+      });
+      const climaDimensoes = Object.entries(dimensoesMap).map(
+        ([dimensao, { soma, qtd }]) => ({
+          dimensao,
+          media: Math.round((soma / qtd) * 10) / 10,
+        })
+      );
+
+      // Calcular índice de clima (média geral)
+      const todasNotas = (climaData ?? []).map((r: any) => Number(r.nota)).filter(Boolean);
+      const indiceClima =
+        todasNotas.length > 0
+          ? Math.round(
+              (todasNotas.reduce((a: number, b: number) => a + b, 0) /
+                todasNotas.length /
+                5) *
+                100
+            )
+          : 0;
+
+      setCargos(cargosData ?? []);
+      setDados({
+        nomeCompleto: perfil.nome_completo,
+        totalColaboradores: totalColaboradores ?? 0,
+        feriasPendentes: feriasPendentes ?? 0,
+        contrachequesMes: contrachequesMes ?? 0,
+        avaliacoesAbertas: avaliacoesAbertas ?? 0,
+        indiceClima,
+        statusFerias,
+        climaDimensoes,
+        solicitacoesPendentes: solicitacoesPendentes ?? [],
+      });
+    } catch (error) {
+      console.error("Erro ao carregar dados:", error);
+    } finally {
+      setIsLoading(false);
+    }
+  }, [params.tenant_slug, router]);
+
+  useEffect(() => {
     carregarDados();
-  }, []);
+  }, [carregarDados]);
 
   if (isLoading) {
     return (
@@ -117,9 +236,12 @@ export default function AdminPage({
             <Shield className="w-6 h-6 text-indigo-600" />
           </div>
           <div>
-            <h1 className="text-2xl font-semibold text-gray-900">Painel do RH</h1>
+            <h1 className="text-2xl font-semibold text-gray-900">
+              Painel do RH
+            </h1>
             <p className="text-sm text-gray-500">
-              Olá, <strong>{dados?.nomeCompleto}</strong> — visão executiva da gestão de pessoas
+              Olá, <strong>{dados?.nomeCompleto}</strong> — visão executiva da
+              gestão de pessoas
             </p>
           </div>
         </div>
@@ -197,7 +319,10 @@ export default function AdminPage({
       {/* Modal de Convite */}
       <ConvidarColaboradorModal
         isOpen={isConvidarOpen}
-        onClose={() => setIsConvidarOpen(false)}
+        onClose={() => {
+          setIsConvidarOpen(false);
+          carregarDados(); // Recarregar após convidar
+        }}
         cargos={cargos}
         tenantSlug={params.tenant_slug}
       />

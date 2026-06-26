@@ -26,7 +26,7 @@ export default async function ColaboradoresPage({
       id,
       nome_completo,
       email,
-      avatar_url,
+      foto_url,
       ativo,
       criado_em,
       cargo:cargos!perfis_cargo_id_fkey (id, nome, nivel)

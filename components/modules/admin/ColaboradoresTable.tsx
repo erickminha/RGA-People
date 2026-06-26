@@ -23,7 +23,7 @@ interface Colaborador {
   id: string;
   nome_completo: string;
   email: string;
-  avatar_url: string | null;
+  foto_url: string | null;
   ativo: boolean;
   criado_em: string;
   cargo: { id: string; nome: string; nivel: string | null } | null;
@@ -254,13 +254,12 @@ export default function ColaboradoresTable({
       </div>
 
       {/* Modais */}
-      {convidarOpen && (
-        <ConvidarColaboradorModal
-          cargos={cargos}
-          tenantSlug={tenantSlug}
-          onClose={() => setConvidarOpen(false)}
-        />
-      )}
+      <ConvidarColaboradorModal
+        isOpen={convidarOpen}
+        cargos={cargos}
+        tenantSlug={tenantSlug}
+        onClose={() => setConvidarOpen(false)}
+      />
       {editando && (
         <EditarColaboradorModal
           colaborador={editando}

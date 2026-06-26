@@ -1,7 +1,8 @@
 "use client";
 import { useState } from "react";
-import { Plus, X } from "lucide-react";
+import { Plus, X, Loader2 } from "lucide-react";
 import { criarBeneficio } from "@/app/actions/admin-beneficios";
+import toast from "react-hot-toast";
 
 interface Props {
   tenantSlug: string;
@@ -24,9 +25,10 @@ export default function NovoBeneficioModal({ tenantSlug }: Props) {
     const res = await criarBeneficio(tenantSlug, dados);
     setLoading(false);
     if (res.success) {
+      toast.success(res.message ?? "Benefício criado com sucesso!");
       setIsOpen(false);
     } else {
-      alert(res.message);
+      toast.error(res.message ?? "Erro ao criar benefício.");
     }
   }
 
@@ -67,7 +69,7 @@ export default function NovoBeneficioModal({ tenantSlug }: Props) {
           <div className="flex justify-end gap-3 pt-2">
             <button type="button" onClick={() => setIsOpen(false)} className="px-4 py-2 text-sm font-medium text-gray-700 hover:bg-gray-100 rounded-lg transition-colors">Cancelar</button>
             <button type="submit" disabled={loading} className="px-4 py-2 text-sm font-medium text-white bg-emerald-600 hover:bg-emerald-700 rounded-lg transition-colors disabled:opacity-50">
-              {loading ? "Salvando..." : "Criar Benefício"}
+              {loading ? (<><Loader2 className="w-4 h-4 animate-spin" />Salvando...</>) : "Criar Benefício"}
             </button>
           </div>
         </form>

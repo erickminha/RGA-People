@@ -9,7 +9,7 @@ import toast from "react-hot-toast";
 interface Colaborador {
   id: string;
   nome_completo: string;
-  cargo: { nome: string };
+  cargo: { nome: string } | { nome: string }[] | null;
   saldo_ferias: number;
 }
 
@@ -139,7 +139,7 @@ export default function SaldoFeriasPage() {
                     {col.nome_completo}
                   </td>
                   <td className="px-6 py-4 text-sm text-gray-600">
-                    {col.cargo?.nome || "N/A"}
+                    {(Array.isArray(col.cargo) ? col.cargo[0]?.nome : (col.cargo as any)?.nome) || "N/A"}
                   </td>
                   <td className="px-6 py-4 text-center">
                     <input

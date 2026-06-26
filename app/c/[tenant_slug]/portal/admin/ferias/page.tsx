@@ -1,34 +1,54 @@
 import { createClient } from "@/lib/supabase/server";
 import { requireRhAdmin } from "@/lib/auth/guards";
-import { Plane, Search } from "lucide-react";
+import { Plane } from "lucide-react";
 import { format } from "date-fns";
 import { ptBR } from "date-fns/locale";
+import AprovacoesFeriasPendentes from "@/components/modules/admin/AprovacoesFeriasPendentes";
 
 interface PageProps {
   params: { tenant_slug: string };
-  searchParams: { busca?: string };
 }
 
 export const dynamic = "force-dynamic";
 
-export default async function AdminFeriasPage({ params, searchParams }: PageProps) {
+export default async function AdminFeriasPage({ params }: PageProps) {
   const guard = await requireRhAdmin(params.tenant_slug);
   const supabase = createClient();
-  const busca = searchParams.busca || "";
 
-  let query = supabase
+  // Solicitações pendentes para aprovação
+  const { data: pendentes } = await supabase
+    .from("ferias_solicitacoes")
+    .select(`
+      id,
+      data_inicio,
+      data_fim,
+      criado_em,
+      perfil:perfis!ferias_solicitacoes_perfil_id_fkey(nome_completo, email)
+    `)
+    .eq("empresa_id", guard.empresaId)
+    .eq("status", "pendente")
+    .order("criado_em", { ascending: true });
+
+  // Histórico completo
+  const { data: solicitacoes } = await supabase
     .from("ferias_solicitacoes")
     .select(`
       *,
-      perfil:perfis(nome_completo, email)
+      perfil:perfis!ferias_solicitacoes_perfil_id_fkey(nome_completo, email)
     `)
     .eq("empresa_id", guard.empresaId)
     .order("criado_em", { ascending: false });
 
-  const { data: solicitacoes } = await query;
+  const solicitacoesPendentes = (pendentes ?? []).map((s) => ({
+    id: s.id as string,
+    data_inicio: s.data_inicio as string,
+    data_fim: s.data_fim as string,
+    criado_em: s.criado_em as string,
+    perfil: (Array.isArray(s.perfil) ? s.perfil[0] : s.perfil) as { id: string; nome_completo: string; email: string },
+  }));
 
   return (
-    <div className="p-6 md:p-8 max-w-7xl mx-auto space-y-6">
+    <div className="p-6 md:p-8 max-w-7xl mx-auto space-y-8">
       <header>
         <div className="flex items-center gap-3">
           <div className="p-2.5 bg-amber-50 rounded-lg">
@@ -36,15 +56,24 @@ export default async function AdminFeriasPage({ params, searchParams }: PageProp
           </div>
           <div>
             <h1 className="text-2xl font-semibold text-gray-900">
-              Histórico de Férias
+              Gestão de Férias
             </h1>
             <p className="text-sm text-gray-500">
-              Visualize todas as solicitações de férias da empresa
+              Aprove solicitações pendentes e visualize o histórico da equipe
             </p>
           </div>
         </div>
       </header>
 
+      {/* Aprovações Pendentes */}
+      <AprovacoesFeriasPendentes
+        solicitacoes={solicitacoesPendentes}
+        tenantSlug={params.tenant_slug}
+      />
+
+      {/* Histórico Completo */}
+      <section className="space-y-4">
+        <h2 className="text-lg font-semibold text-gray-900">Histórico Completo</h2>
       <div className="bg-white border border-gray-200 rounded-xl overflow-hidden shadow-sm">
         <table className="w-full text-left border-collapse">
           <thead>
@@ -56,7 +85,7 @@ export default async function AdminFeriasPage({ params, searchParams }: PageProp
             </tr>
           </thead>
           <tbody className="divide-y divide-gray-200">
-            {solicitacoes?.map((s) => (
+            {(solicitacoes ?? []).map((s) => (
               <tr key={s.id} className="hover:bg-gray-50 transition-colors">
                 <td className="px-6 py-4">
                   <div className="font-medium text-gray-900">{(s.perfil as any)?.nome_completo}</div>
@@ -79,10 +108,18 @@ export default async function AdminFeriasPage({ params, searchParams }: PageProp
                   {format(new Date(s.criado_em), "dd/MM/yy 'às' HH:mm", { locale: ptBR })}
                 </td>
               </tr>
-            ))}
+            )            )}
+            {(!solicitacoes || solicitacoes.length === 0) && (
+              <tr>
+                <td colSpan={4} className="px-6 py-12 text-center text-gray-500 italic">
+                  Nenhuma solicitação de férias encontrada.
+                </td>
+              </tr>
+            )}
           </tbody>
         </table>
       </div>
+      </section>
     </div>
   );
 }
