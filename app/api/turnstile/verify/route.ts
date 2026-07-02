@@ -1,9 +1,5 @@
 import { NextRequest, NextResponse } from "next/server";
 
-const TURNSTILE_SECRET_KEY =
-  process.env.CLOUDFLARE_TURNSTILE_SECRET_KEY ??
-  "0x4AAAAAADrbJzPFnDL5sPrPMc0cH4racOE";
-
 /**
  * POST /api/turnstile/verify
  * Verifica o token Turnstile com a API da Cloudflare.
@@ -11,6 +7,18 @@ const TURNSTILE_SECRET_KEY =
  */
 export async function POST(request: NextRequest) {
   try {
+    const turnstileSecretKey = process.env.CLOUDFLARE_TURNSTILE_SECRET_KEY;
+
+    if (!turnstileSecretKey) {
+      console.error(
+        "[turnstile verify]: CLOUDFLARE_TURNSTILE_SECRET_KEY ausente no ambiente."
+      );
+      return NextResponse.json(
+        { success: false, error: "Verificação de segurança indisponível." },
+        { status: 500 }
+      );
+    }
+
     const { token } = await request.json();
 
     if (!token) {
@@ -27,7 +35,7 @@ export async function POST(request: NextRequest) {
       "unknown";
 
     const formData = new FormData();
-    formData.append("secret", TURNSTILE_SECRET_KEY);
+    formData.append("secret", turnstileSecretKey);
     formData.append("response", token);
     formData.append("remoteip", ip);
 
