@@ -1,5 +1,6 @@
 import React from "react";
 import { marked } from "marked";
+import DOMPurify from "isomorphic-dompurify";
 
 /**
  * Renderiza Markdown para HTML com classes Tailwind.
@@ -13,9 +14,12 @@ export function Markdown({ content }: { content: string }) {
     gfm: true,
   });
 
-  const html = marked(content);
+  const rawHtml = marked(content) as string;
+  // Sanitiza o HTML antes de injetar no DOM para evitar XSS armazenado
+  // (o conteúdo pode ter sido escrito por um admin de RH, mas ainda assim
+  // é renderizado para todos os colaboradores da empresa).
+  const html = DOMPurify.sanitize(rawHtml);
 
-  // Sanitizar e renderizar (em produção, considere usar DOMPurify)
   return (
     <div
       className="prose prose-sm max-w-none
