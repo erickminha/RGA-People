@@ -139,7 +139,7 @@ export default async function PortalDashboardPage({ params }: PageProps) {
                   Atualizamos nossas políticas internas e código de conduta. Não deixe de ler!
                 </p>
                 <Link 
-                  href={`/c/${params.tenant_slug}/portal/manual`}
+                  href={`/c/${params.tenant_slug}/portal/documentos`}
                   className="inline-block mt-3 text-sm font-medium text-blue-600 hover:underline"
                 >
                   Ler agora →

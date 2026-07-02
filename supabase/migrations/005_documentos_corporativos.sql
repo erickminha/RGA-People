@@ -1,5 +1,5 @@
 -- ============================================================
--- Migration 004: Documentos Corporativos e Aceites Eletrônicos
+-- Migration 005: Documentos Corporativos e Aceites Eletrônicos
 -- Portal do Colaborador RGA - SaaS B2B Multi-tenant
 -- ============================================================
 -- Gerencia Manual do Colaborador, Código de Conduta, POPs, NR1, etc.

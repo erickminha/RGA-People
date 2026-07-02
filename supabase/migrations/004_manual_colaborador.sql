@@ -1,5 +1,12 @@
 -- Migration 004: Manual do Colaborador
 -- Permite que o RH publique um manual ou código de conduta para a empresa.
+--
+-- ⚠️ NOTA: esta funcionalidade foi posteriormente consolidada no módulo mais
+-- completo "Documentos Corporativos" (ver migration 005), que cobre o mesmo
+-- caso de uso (tipo 'manual_colaborador') e já possui tela de administração
+-- funcional. A tabela abaixo é mantida por compatibilidade com bancos que já
+-- a aplicaram, mas não deve ser usada em novas integrações — use
+-- `documentos_corporativos` / `aceites_documentos` no lugar.
 
 CREATE TABLE IF NOT EXISTS public.manuais (
   id           uuid PRIMARY KEY DEFAULT gen_random_uuid(),
