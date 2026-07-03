@@ -102,6 +102,13 @@ export async function criarEmpresa(formData: FormData): Promise<ActionResult> {
 
     const { error: erroCargos } = await admin.from("cargos").insert(cargosPadrao);
 
+    await admin.from("audit_logs").insert({
+      acao: "CRIAR_EMPRESA",
+      usuario_id: guard.userId,
+      empresa_id: novaEmpresa.id,
+      metadados: { nome, slug, criado_por_empresa_id: guard.empresaId },
+    });
+
     if (erroCargos) {
       console.error("Erro ao criar cargos padrão:", erroCargos);
       // A empresa já foi criada — não desfazemos, mas avisamos claramente,
