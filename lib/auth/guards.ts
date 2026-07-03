@@ -92,3 +92,27 @@ export async function checkRhAdmin(): Promise<AuthGuardResult | null> {
     nomeCompleto: perfil.nome_completo,
   };
 }
+
+/**
+ * Garante que o usuário é Super Admin (não apenas RH). Usado em páginas que
+ * cruzam empresas (ex.: gestão de tenants), onde um RH admin comum não pode
+ * entrar. Redireciona caso contrário.
+ */
+export async function requireSuperAdmin(
+  tenantSlug: string
+): Promise<AuthGuardResult> {
+  const guard = await requireRhAdmin(tenantSlug);
+  if (guard.role !== "super_admin") {
+    redirect(`/c/${tenantSlug}/portal`);
+  }
+  return guard;
+}
+
+/**
+ * Versão "boolean" de requireSuperAdmin, para uso em Server Actions.
+ */
+export async function checkSuperAdmin(): Promise<AuthGuardResult | null> {
+  const guard = await checkRhAdmin();
+  if (!guard || guard.role !== "super_admin") return null;
+  return guard;
+}

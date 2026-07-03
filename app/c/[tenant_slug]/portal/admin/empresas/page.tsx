@@ -1,5 +1,5 @@
-import { createClient } from "@/lib/supabase/server";
-import { requireRhAdmin } from "@/lib/auth/guards";
+import { createAdminClient } from "@/lib/supabase/admin";
+import { requireSuperAdmin } from "@/lib/auth/guards";
 import { Building2, Plus, Globe, CheckCircle2, XCircle } from "lucide-react";
 import Link from "next/link";
 
@@ -10,10 +10,13 @@ export default async function GestaoEmpresasPage({
 }: {
   params: { tenant_slug: string };
 }) {
-  const guard = await requireRhAdmin(params.tenant_slug);
-  const supabase = createClient();
+  await requireSuperAdmin(params.tenant_slug);
 
-  const { data: empresas } = await supabase
+  // Client comum (RLS) só enxergaria a própria empresa do usuário — aqui
+  // precisamos listar todos os tenants, então usamos o Service Role.
+  const admin = createAdminClient();
+
+  const { data: empresas } = await admin
     .from("empresas")
     .select("*")
     .order("nome");
