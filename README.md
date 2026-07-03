@@ -26,7 +26,7 @@ Recentemente, as seguintes funcionalidades foram adicionadas ou aprimoradas para
 
 *   **Gestão de Benefícios (Admin):** O RH agora pode cadastrar, editar e excluir benefícios oferecidos aos colaboradores, com uma interface dedicada para gerenciamento.
 *   **Histórico de Férias (Admin):** Uma nova página administrativa permite ao RH visualizar e gerenciar o histórico completo de solicitações de férias de todos os colaboradores.
-*   **Manual do Colaborador:** Um novo módulo foi adicionado, permitindo que o RH publique um manual ou código de conduta para a empresa, acessível pelos colaboradores. Inclui a criação da tabela `manuais` no banco de dados e as páginas de visualização e administração.
+*   **Documentos Corporativos e Aceite Eletrônico:** Módulo que permite ao RH publicar manual do colaborador, código de conduta, POPs, NR1 e outros documentos (em Markdown ou arquivo), com controle de versão e registro do aceite eletrônico de cada colaborador. Inclui páginas de visualização (`/portal/documentos`) e administração completa (`/portal/admin/documentos`).
 *   **Gestão de Contracheques (Admin):** Implementada a página de administração para que o RH possa visualizar e gerenciar os contracheques enviados.
 *   **Dashboard do Colaborador:** A página inicial do portal (`/c/{slug}/portal`) foi restaurada e aprimorada, oferecendo um dashboard com cards de resumo para férias, contracheques, avaliações e benefícios, além de uma seção de comunicados.
 
@@ -38,28 +38,39 @@ Recentemente, as seguintes funcionalidades foram adicionadas ou aprimoradas para
 app/
   c/[tenant_slug]/
     login/                 # Tela de login (Supabase Auth)
+    convite/[token]/       # Aceite de convite de novo colaborador
     portal/                # Área do colaborador
       admin/               # Área restrita ao RH
         beneficios/        # Gestão de benefícios
         contracheques/     # Gestão de contracheques
         ferias/            # Histórico de férias
         clima/             # Gerenciar pesquisas + resultados agregados
-      manual/              # Manual do colaborador
+        colaboradores/     # Listagem/convite de colaboradores
+        documentos/        # Gestão de Documentos Corporativos (manual, código de conduta, POPs, NR1...)
+        empresas/          # Gestão de empresas (apenas super admin)
+      documentos/          # Ver e aceitar Documentos Corporativos (inclui Manual do Colaborador)
       clima/               # Responder pesquisa de clima (anônimo)
       ferias/              # Solicitar e ver férias
       contracheques/       # Ver contracheques
       avaliacao/           # Ver avaliações
       beneficios/          # Ver benefícios
   api/auth/signout/        # Logout
-  actions/                 # Server Actions (clima, férias, benefícios, manual, etc.)
-components/modules/        # Componentes por módulo (admin, clima, ...)
+  api/turnstile/verify/    # Verificação server-side do captcha Cloudflare Turnstile
+  actions/                 # Server Actions (clima, férias, benefícios, documentos, convites, etc.)
+components/modules/        # Componentes por módulo (admin, clima, documentos, ...)
 lib/
-  supabase/                # Clientes server e browser
+  supabase/                # Clientes server, browser e admin (service role)
   auth/guards.ts           # Guardas de permissão (RH, super admin)
+  email/                   # Templates e cliente de e-mail transacional (Resend)
   schemas/                 # Schemas Zod
 supabase/migrations/       # Migrations SQL versionadas
 supabase/seed.sql          # Dados iniciais opcionais
 ```
+
+> **Nota:** o antigo módulo "Manual do Colaborador" (rota `/portal/manual`, tabela `manuais`) foi
+> consolidado dentro de **Documentos Corporativos** (`/portal/documentos`), que é mais completo
+> (versionamento, tipos de documento, aceite eletrônico) e possui tela de administração funcional.
+> A rota antiga permanece apenas como redirecionamento por compatibilidade.
 
 ---
 
@@ -72,18 +83,25 @@ supabase/seed.sql          # Dados iniciais opcionais
     npm install
     ```
 
-3.  **Configure as variáveis de ambiente** (copie `.env.example` para `.env.local`):
+3.  **Configure as variáveis de ambiente** (copie `.env.example` para `.env.local` e preencha todas):
     ```bash
-    NEXT_PUBLIC_SUPABASE_URL=https://SEU-PROJETO.supabase.co
-    NEXT_PUBLIC_SUPABASE_ANON_KEY=sua-anon-key
+    cp .env.example .env.local
     ```
+    | Variável | Obrigatória para | Onde conseguir |
+    | --- | --- | --- |
+    | `NEXT_PUBLIC_SUPABASE_URL` / `NEXT_PUBLIC_SUPABASE_ANON_KEY` | Tudo (Auth + dados) | Supabase → Settings → API |
+    | `SUPABASE_SERVICE_ROLE_KEY` | Convites de colaboradores, ações administrativas | Supabase → Settings → API ⚠️ nunca expor no client |
+    | `NEXT_PUBLIC_SITE_URL` | Links de convite/e-mail | URL pública do seu deploy |
+    | `RESEND_API_KEY` / `RESEND_FROM_EMAIL` | Envio de e-mails (convites) | [resend.com](https://resend.com/api-keys) |
+    | `NEXT_PUBLIC_TURNSTILE_SITE_KEY` / `CLOUDFLARE_TURNSTILE_SECRET_KEY` | Captcha em login/convite | Cloudflare Dashboard → Turnstile (crie um par **novo**, específico do seu projeto) |
 
-4.  **Aplique o banco de dados** (no SQL Editor do Supabase, na ordem):
+4.  **Aplique o banco de dados** (no SQL Editor do Supabase, **nesta ordem**):
     ```
     supabase/migrations/001_initial_schema.sql
     supabase/migrations/002_extensoes_hubs_3_6.sql
     supabase/migrations/003_pesquisa_clima.sql
-    supabase/migrations/004_manual_colaborador.sql # Nova migração para o manual
+    supabase/migrations/004_manual_colaborador.sql       # legado, mantido por compatibilidade
+    supabase/migrations/005_documentos_corporativos.sql  # módulo atual de Documentos/Manual
     supabase/seed.sql            # opcional (cria a empresa "rga" e cargos)
     ```
 
@@ -123,7 +141,8 @@ Todas as tabelas de negócio possuem `empresa_id` e políticas RLS que garantem 
 | Contracheques | ✅ Pronto | RH + Colaborador |
 | Avaliações | ✅ Base existente | RH + Gestor + Colaborador |
 | Benefícios | ✅ Pronto | RH + Colaborador |
-| Manual do Colaborador / Código de Conduta | ✅ Pronto | RH + Colaborador |
+| Documentos Corporativos (Manual, Código de Conduta, POPs, NR1) + Aceite Eletrônico | ✅ Pronto | RH + Colaborador |
+| Convites e cadastro de colaboradores | ✅ Pronto | RH |
 | Plano de Carreira / Cargos e Salários | ⏳ Próximos | RH + Colaborador |
 | PDI / Universidade Corporativa | ⏳ Próximos | RH + Colaborador |
 | POPs do RH / NR1 | ⏳ Próximos | RH + Colaborador |

@@ -1,23 +1,30 @@
 # 🔧 CI/CD & Governança Git — Portal do Colaborador RGA
 
-Pacote complementar com configurações de **CI/CD no GitHub Actions**, **deploy automático no Vercel** e **templates de governança**.
+> ⚠️ **Atualização importante:** o deploy em produção deste projeto é feito via **Netlify**
+> (veja `netlify.toml` e a seção "Deploy" do [`README.md`](./README.md) principal), **não** Vercel.
+> As seções abaixo sobre Vercel descrevem um caminho alternativo/opcional que não está
+> configurado neste repositório — mantidas aqui apenas como referência caso você queira migrar
+> o deploy para a Vercel no futuro. O pipeline de qualidade (`ci.yml`) é real e roda em
+> qualquer branch/PR, independentemente de onde o deploy acontece.
+
+Pacote complementar com configurações de **CI de qualidade no GitHub Actions** e **templates de governança**. A parte de deploy automático (Vercel) é opcional e não está ativa por padrão.
 
 ---
 
 ## 📦 Arquivos incluídos
 
-| Arquivo | Propósito |
-|---|---|
-| `.gitignore` | Ignora `node_modules`, `.env*`, `.next`, `.vercel` etc. |
-| `.github/workflows/ci.yml` | Pipeline de qualidade (lint + typecheck + build) |
-| `.github/workflows/deploy-preview.yml` | Deploy automático de preview em PRs |
-| `.github/workflows/deploy-production.yml` | Deploy em produção ao mergear em `main` |
-| `.github/PULL_REQUEST_TEMPLATE.md` | Template de PR em pt-BR |
-| `.github/ISSUE_TEMPLATE/bug_report.md` | Template de bug |
-| `.github/ISSUE_TEMPLATE/feature_request.md` | Template de feature |
-| `.github/dependabot.yml` | Atualização semanal de dependências |
-| `vercel.json` | Config do Vercel (região São Paulo + headers de segurança) |
-| `.nvmrc` | Versão do Node.js (20) |
+| Arquivo | Propósito | Status |
+|---|---|---|
+| `.gitignore` | Ignora `node_modules`, `.env*`, `.next`, `.vercel` etc. | ✅ presente |
+| `.github/workflows/ci.yml` | Pipeline de qualidade (lint + typecheck + build) | ✅ presente |
+| `.github/workflows/deploy-preview.yml` | Deploy automático de preview em PRs (Vercel) | ⏳ opcional, não incluso |
+| `.github/workflows/deploy-production.yml` | Deploy em produção ao mergear em `main` (Vercel) | ⏳ opcional, não incluso |
+| `.github/PULL_REQUEST_TEMPLATE.md` | Template de PR em pt-BR | ✅ presente |
+| `.github/ISSUE_TEMPLATE/bug_report.md` | Template de bug | ✅ presente |
+| `.github/ISSUE_TEMPLATE/feature_request.md` | Template de feature | ✅ presente |
+| `.github/dependabot.yml` | Atualização semanal de dependências | ✅ presente |
+| `vercel.json` | Config do Vercel (região São Paulo + headers de segurança) | ⏳ opcional, não incluso |
+| `.nvmrc` | Versão do Node.js (20) | ✅ presente |
 | `.editorconfig` | Padrão de indentação/encoding |
 | `CONTRIBUTING.md` | Guia de contribuição |
 
