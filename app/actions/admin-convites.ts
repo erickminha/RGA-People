@@ -6,15 +6,15 @@ import { checkRhAdmin } from "@/lib/auth/guards";
 import { enviarEmailConvite } from "@/lib/email/resend";
 
 export async function enviarConvite(formData: FormData) {
-  const guard = await checkRhAdmin();
-  if (!guard) {
-    return { success: false, error: "Não autenticado ou sem permissão." };
-  }
-
   const email = formData.get("email") as string;
   const nomeCompleto = formData.get("nomeCompleto") as string;
   const cargoId = formData.get("cargoId") as string;
   const tenantSlug = formData.get("tenantSlug") as string;
+
+  const guard = await checkRhAdmin(tenantSlug);
+  if (!guard) {
+    return { success: false, error: "Não autenticado ou sem permissão." };
+  }
 
   // Validações
   if (!email || !nomeCompleto || !cargoId) {
@@ -26,7 +26,7 @@ export async function enviarConvite(formData: FormData) {
     return { success: false, error: "E-mail inválido" };
   }
 
-  const supabase = createClient();
+  const supabase = await createClient();
 
   try {
     // Buscar a empresa pelo slug

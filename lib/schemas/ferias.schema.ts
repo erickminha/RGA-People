@@ -3,10 +3,10 @@ import { z } from "zod";
 export const solicitacaoFeriasSchema = z
   .object({
     data_inicio: z
-      .string({ required_error: "Data de início é obrigatória" })
+      .string({ error: "Data de início é obrigatória" })
       .min(1, "Data de início é obrigatória"),
     data_fim: z
-      .string({ required_error: "Data de fim é obrigatória" })
+      .string({ error: "Data de fim é obrigatória" })
       .min(1, "Data de fim é obrigatória"),
     abono_pecuniario: z.boolean().default(false),
     dias_abono: z.coerce

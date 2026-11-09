@@ -20,7 +20,7 @@ export const metasSchema = z.object({
     .min(30, "Liste suas principais entregas (mín. 30 caracteres)")
     .max(2000),
   metas_atingidas: z.enum(["todas", "maioria", "parcialmente", "nao_atingi"], {
-    errorMap: () => ({ message: "Selecione uma opção" }),
+    error: "Selecione uma opção",
   }),
   desafios_enfrentados: z
     .string()
@@ -57,9 +57,7 @@ export const revisaoSchema = z.object({
     .min(1, "Dê uma nota de 1 a 10")
     .max(10, "Nota máxima é 10"),
   confirmacao: z.literal(true, {
-    errorMap: () => ({
-      message: "Confirme que as informações estão corretas",
-    }),
+    error: "Confirme que as informações estão corretas",
   }),
 });
 

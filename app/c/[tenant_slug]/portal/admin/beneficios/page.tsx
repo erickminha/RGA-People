@@ -5,14 +5,15 @@ import { excluirBeneficio } from "@/app/actions/admin-beneficios";
 import NovoBeneficioModal from "@/components/modules/admin/NovoBeneficioModal";
 
 interface PageProps {
-  params: { tenant_slug: string };
+  params: Promise<{ tenant_slug: string }>;
 }
 
 export const dynamic = "force-dynamic";
 
-export default async function AdminBeneficiosPage({ params }: PageProps) {
+export default async function AdminBeneficiosPage(props: PageProps) {
+  const params = await props.params;
   const guard = await requireRhAdmin(params.tenant_slug);
-  const supabase = createClient();
+  const supabase = await createClient();
 
   const { data: beneficios } = await supabase
     .from("beneficios")

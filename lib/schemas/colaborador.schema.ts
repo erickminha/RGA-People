@@ -2,7 +2,7 @@ import { z } from "zod";
 
 export const convidarColaboradorSchema = z.object({
   email: z
-    .string({ required_error: "Email obrigatório" })
+    .string({ error: "Email obrigatório" })
     .email("Email inválido")
     .toLowerCase(),
   nome_completo: z
@@ -10,7 +10,7 @@ export const convidarColaboradorSchema = z.object({
     .min(3, "Nome muito curto")
     .max(120, "Máximo 120 caracteres"),
   cargo_id: z
-    .string({ required_error: "Selecione um cargo" })
+    .string({ error: "Selecione um cargo" })
     .uuid("Cargo inválido"),
 });
 

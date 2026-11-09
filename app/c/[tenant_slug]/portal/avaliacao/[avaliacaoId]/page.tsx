@@ -5,13 +5,14 @@ import { ArrowLeft } from "lucide-react";
 import AutoAvaliacaoForm from "@/components/modules/avaliacao/AutoAvaliacaoForm";
 
 interface PageProps {
-  params: { tenant_slug: string; avaliacaoId: string };
+  params: Promise<{ tenant_slug: string; avaliacaoId: string }>;
 }
 
 export const dynamic = "force-dynamic";
 
-export default async function AvaliacaoFormularioPage({ params }: PageProps) {
-  const supabase = createClient();
+export default async function AvaliacaoFormularioPage(props: PageProps) {
+  const params = await props.params;
+  const supabase = await createClient();
   const periodo = decodeURIComponent(params.avaliacaoId);
 
   const {

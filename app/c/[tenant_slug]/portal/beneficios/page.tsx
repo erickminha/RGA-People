@@ -12,7 +12,7 @@ import {
 } from "lucide-react";
 
 interface PageProps {
-  params: { tenant_slug: string };
+  params: Promise<{ tenant_slug: string }>;
 }
 
 interface Beneficio {
@@ -38,8 +38,9 @@ function getIconePorNome(nome: string) {
   return { Icon: Gift, bg: "bg-emerald-50", text: "text-emerald-600" };
 }
 
-export default async function BeneficiosPage({ params }: PageProps) {
-  const supabase = createClient();
+export default async function BeneficiosPage(props: PageProps) {
+  const params = await props.params;
+  const supabase = await createClient();
 
   const {
     data: { user },

@@ -1,17 +1,18 @@
 import { createClient } from "@/lib/supabase/server";
-import { requireRhAdmin } from "@/lib/auth/guards";
+import { requireSuperAdmin } from "@/lib/auth/guards";
 import { Building2, Plus, Globe, CheckCircle2, XCircle } from "lucide-react";
 import Link from "next/link";
 
 export const dynamic = "force-dynamic";
 
-export default async function GestaoEmpresasPage({
-  params,
-}: {
-  params: { tenant_slug: string };
-}) {
-  const guard = await requireRhAdmin(params.tenant_slug);
-  const supabase = createClient();
+export default async function GestaoEmpresasPage(
+  props: {
+    params: Promise<{ tenant_slug: string }>;
+  }
+) {
+  const params = await props.params;
+  const guard = await requireSuperAdmin(params.tenant_slug);
+  const supabase = await createClient();
 
   const { data: empresas } = await supabase
     .from("empresas")

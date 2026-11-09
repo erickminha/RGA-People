@@ -64,6 +64,26 @@ export async function middleware(request: NextRequest) {
     return NextResponse.redirect(new URL(`/c/${tenantSlug}/login`, request.url))
   }
 
+  if (pathname.includes('/portal') && user) {
+    const segments = pathname.split('/').filter(Boolean)
+    const tenantSlug = segments[1]
+    const { data: perfil } = await supabase
+      .from('perfis')
+      .select('ativo, empresa:empresas!perfis_empresa_id_fkey(slug, ativo)')
+      .eq('id', user.id)
+      .maybeSingle()
+    const empresa = Array.isArray(perfil?.empresa) ? perfil.empresa[0] : perfil?.empresa
+
+    if (
+      perfil?.ativo === false ||
+      empresa?.ativo === false ||
+      !empresa ||
+      empresa.slug !== tenantSlug
+    ) {
+      return NextResponse.redirect(new URL(`/c/${tenantSlug}/login`, request.url))
+    }
+  }
+
   return response
 }
 

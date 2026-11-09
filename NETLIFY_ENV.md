@@ -12,10 +12,22 @@ Configure as seguintes variáveis em **Netlify → Site Settings → Environment
 | `RESEND_API_KEY` | Chave da API Resend para envio de emails |
 | `RESEND_FROM_EMAIL` | Remetente dos emails (ex: `RGA People <noreply@rgapeople.com.br>`) |
 | `NEXT_PUBLIC_TURNSTILE_SITE_KEY` | Site Key do Cloudflare Turnstile |
-| `CLOUDFLARE_TURNSTILE_SECRET_KEY` | Secret Key do Cloudflare Turnstile (secreta) |
 | `NEXT_PUBLIC_SITE_URL` | URL pública do site (ex: `https://rgapeople.netlify.app`) |
 
+## Variáveis de IA — Triagem de Currículos (Opcional)
+
+O módulo de Banco de Talentos pode triar currículos com IA (OpenRouter). Essas variáveis **não são obrigatórias** e **nunca** devem ser versionadas com valor real.
+
+| Variável | Descrição |
+|---|---|
+| `OPENROUTER_API_KEY` | Chave de API do OpenRouter (secreta). Cadastre-a você mesmo no **Netlify → Site settings → Environment Variables** (marcar como *sensitive*) — nunca embutida no código. |
+| `OPENROUTER_MODEL` | Modelo a usar (padrão: `openrouter/auto`). Opcional. |
+
+> A chave só é lida no servidor, dentro de `lib/ai/triagem.ts`. Sem ela, o botão "Triar IA" retorna erro amigável sem vazar segredo.
+
 ## Configuração no Supabase
+
+Configure o Turnstile também em **Authentication → Bot and Abuse Protection → CAPTCHA** (o nome da seção pode variar), informando o provedor Cloudflare Turnstile e sua Secret Key. A aplicação envia o token diretamente ao Supabase Auth: não valide o mesmo token previamente em outra rota, pois tokens CAPTCHA são de uso único.
 
 No painel do Supabase, acesse **Authentication → URL Configuration** e configure:
 

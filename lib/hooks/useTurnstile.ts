@@ -7,10 +7,10 @@ interface UseTurnstileReturn {
   isVerified: boolean;
   isExpired: boolean;
   hasError: boolean;
+  resetKey: number;
   handleVerify: (token: string) => void;
   handleExpire: () => void;
   handleError: () => void;
-  verifyOnServer: () => Promise<boolean>;
   reset: () => void;
 }
 
@@ -19,6 +19,7 @@ export function useTurnstile(): UseTurnstileReturn {
   const [isVerified, setIsVerified] = useState(false);
   const [isExpired, setIsExpired] = useState(false);
   const [hasError, setHasError] = useState(false);
+  const [resetKey, setResetKey] = useState(0);
 
   const handleVerify = useCallback((t: string) => {
     setToken(t);
@@ -44,27 +45,8 @@ export function useTurnstile(): UseTurnstileReturn {
     setIsVerified(false);
     setIsExpired(false);
     setHasError(false);
+    setResetKey((key) => key + 1);
   }, []);
-
-  /**
-   * Verifica o token no servidor via API route.
-   * Retorna true se válido.
-   */
-  const verifyOnServer = useCallback(async (): Promise<boolean> => {
-    if (!token) return false;
-
-    try {
-      const res = await fetch("/api/turnstile/verify", {
-        method: "POST",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ token }),
-      });
-      const data = await res.json();
-      return data.success === true;
-    } catch {
-      return false;
-    }
-  }, [token]);
 
   return {
     token,
@@ -74,7 +56,7 @@ export function useTurnstile(): UseTurnstileReturn {
     handleVerify,
     handleExpire,
     handleError,
-    verifyOnServer,
+    resetKey,
     reset,
   };
 }

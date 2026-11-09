@@ -4,13 +4,14 @@ import { BookOpen, FileText } from "lucide-react";
 import Link from "next/link";
 
 interface PageProps {
-  params: { tenant_slug: string };
+  params: Promise<{ tenant_slug: string }>;
 }
 
 export const dynamic = "force-dynamic";
 
-export default async function DocumentosPage({ params }: PageProps) {
-  const supabase = createClient();
+export default async function DocumentosPage(props: PageProps) {
+  const params = await props.params;
+  const supabase = await createClient();
 
   const {
     data: { user },

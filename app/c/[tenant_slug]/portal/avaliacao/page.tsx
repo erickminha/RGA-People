@@ -4,7 +4,7 @@ import { TrendingUp } from "lucide-react";
 import CicloAvaliacaoCard from "@/components/modules/avaliacao/CicloAvaliacaoCard";
 
 interface PageProps {
-  params: { tenant_slug: string };
+  params: Promise<{ tenant_slug: string }>;
 }
 
 export const dynamic = "force-dynamic";
@@ -34,8 +34,9 @@ function gerarCiclosAtivos() {
   ];
 }
 
-export default async function AvaliacaoPage({ params }: PageProps) {
-  const supabase = createClient();
+export default async function AvaliacaoPage(props: PageProps) {
+  const params = await props.params;
+  const supabase = await createClient();
 
   const {
     data: { user },

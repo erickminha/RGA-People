@@ -25,7 +25,7 @@ export async function salvarDocumento(
   id: string | null,
   input: DocumentoCorpInput
 ): Promise<ActionResult> {
-  const guard = await checkRhAdmin();
+  const guard = await checkRhAdmin(tenantSlug);
   if (!guard) return { success: false, message: "Acesso negado." };
 
   const parsed = documentoCorpSchema.safeParse(input);
@@ -37,7 +37,7 @@ export async function salvarDocumento(
     };
   }
 
-  const supabase = createClient();
+  const supabase = await createClient();
   
   if (id) {
     // Atualização (incrementa versão se o conteúdo mudar, opcionalmente)
@@ -74,7 +74,7 @@ export async function registrarAceiteDocumento(
   tenantSlug: string,
   input: AceiteDocInput
 ): Promise<ActionResult> {
-  const supabase = createClient();
+  const supabase = await createClient();
   const { data: { user } } = await supabase.auth.getUser();
   if (!user) return { success: false, message: "Sessão expirada." };
 
@@ -82,7 +82,7 @@ export async function registrarAceiteDocumento(
   if (!parsed.success) return { success: false, message: "Dados inválidos." };
 
   // Captura metadados de rede
-  const headerList = headers();
+  const headerList = await headers();
   const ip = headerList.get("x-forwarded-for") || "0.0.0.0";
   const ua = headerList.get("user-agent") || "unknown";
 

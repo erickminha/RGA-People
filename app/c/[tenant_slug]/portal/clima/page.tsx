@@ -5,13 +5,14 @@ import ResponderClimaForm from "@/components/modules/clima/ResponderClimaForm";
 import type { PerguntaClima } from "@/lib/schemas/clima.schema";
 
 interface PageProps {
-  params: { tenant_slug: string };
+  params: Promise<{ tenant_slug: string }>;
 }
 
 export const dynamic = "force-dynamic";
 
-export default async function ClimaColaboradorPage({ params }: PageProps) {
-  const supabase = createClient();
+export default async function ClimaColaboradorPage(props: PageProps) {
+  const params = await props.params;
+  const supabase = await createClient();
 
   const {
     data: { user },

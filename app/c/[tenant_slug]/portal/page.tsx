@@ -15,13 +15,14 @@ import {
 import Link from "next/link";
 
 interface PageProps {
-  params: { tenant_slug: string };
+  params: Promise<{ tenant_slug: string }>;
 }
 
 export const dynamic = "force-dynamic";
 
-export default async function PortalDashboardPage({ params }: PageProps) {
-  const supabase = createClient();
+export default async function PortalDashboardPage(props: PageProps) {
+  const params = await props.params;
+  const supabase = await createClient();
   const { data: { user } } = await supabase.auth.getUser();
 
   if (!user) {

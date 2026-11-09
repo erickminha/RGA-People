@@ -22,7 +22,7 @@ export async function gerarDownloadContracheque(
   params: DownloadContrachequeParams
 ): Promise<DownloadContrachequeResult> {
   const { contrachequeId } = params;
-  const supabase = createClient();
+  const supabase = await createClient();
 
   // 1. Valida usuário autenticado
   const {

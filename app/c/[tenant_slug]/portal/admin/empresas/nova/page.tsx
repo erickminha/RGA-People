@@ -1,16 +1,17 @@
 "use client";
 
-import { useState } from "react";
+import { useState, use } from "react";
 import { useRouter } from "next/navigation";
 import { criarEmpresa } from "@/app/actions/admin-empresas";
 import { ArrowLeft, Building2, Info, Loader2 } from "lucide-react";
 import Link from "next/link";
 
-export default function NovaEmpresaPage({
-  params,
-}: {
-  params: { tenant_slug: string };
-}) {
+export default function NovaEmpresaPage(
+  props: {
+    params: Promise<{ tenant_slug: string }>;
+  }
+) {
+  const params = use(props.params);
   const router = useRouter();
   const [isLoading, setIsLoading] = useState(false);
   const [mensagem, setMensagem] = useState("");

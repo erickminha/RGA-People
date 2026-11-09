@@ -57,19 +57,13 @@ export default function LoginPage() {
 
     setCarregando(true);
     try {
-      // Verificar token no servidor
-      const turnstileOk = await turnstile.verifyOnServer();
-      if (!turnstileOk) {
-        toast.error("Verificação de segurança falhou. Tente novamente.");
-        turnstile.reset();
-        setCarregando(false);
-        return;
-      }
-
       const supabase = createClient();
       const { error } = await supabase.auth.signInWithPassword({
         email: email.trim(),
         password: senha,
+        options: {
+          captchaToken: turnstile.token ?? undefined,
+        },
       });
 
       if (error) {
@@ -86,12 +80,19 @@ export default function LoginPage() {
       // Buscar a empresa do usuário
       const { data: perfil } = await supabase
         .from("perfis")
-        .select("*, empresa:empresas(slug)")
+        .select("*, empresa:empresas(slug, ativo)")
         .eq("id", (await supabase.auth.getUser()).data.user?.id)
         .single();
 
       if (!perfil || !perfil.empresa) {
+        await supabase.auth.signOut();
         toast.error("Perfil de usuário não encontrado.");
+        setCarregando(false);
+        return;
+      }
+      if (perfil.ativo === false || perfil.empresa.ativo === false) {
+        await supabase.auth.signOut();
+        toast.error("Acesso desativado. Entre em contato com o RH.");
         setCarregando(false);
         return;
       }
@@ -100,7 +101,13 @@ export default function LoginPage() {
 
       // Redirecionar para a empresa correta do usuário
       const empresaSlug = perfil.empresa.slug;
-      const destino = searchParams.get("next") ?? `/c/${empresaSlug}/portal`;
+      const portalBase = `/c/${empresaSlug}/portal`;
+      const requestedDestination = searchParams.get("next");
+      const destino =
+        requestedDestination === portalBase ||
+        requestedDestination?.startsWith(`${portalBase}/`)
+          ? requestedDestination
+          : portalBase;
       router.push(destino);
       router.refresh();
     } catch {
@@ -126,18 +133,11 @@ export default function LoginPage() {
 
     setCarregando(true);
     try {
-      const turnstileOk = await turnstile.verifyOnServer();
-      if (!turnstileOk) {
-        toast.error("Verificação de segurança falhou. Tente novamente.");
-        turnstile.reset();
-        setCarregando(false);
-        return;
-      }
-
       const supabase = createClient();
       const { error } = await supabase.auth.resetPasswordForEmail(
         email.trim(),
         {
+          captchaToken: turnstile.token ?? undefined,
           redirectTo: `${window.location.origin}/c/${slug}/redefinir-senha`,
         }
       );
@@ -257,6 +257,7 @@ export default function LoginPage() {
                 </span>
               </div>
               <Turnstile
+                key={turnstile.resetKey}
                 onVerify={turnstile.handleVerify}
                 onExpire={turnstile.handleExpire}
                 onError={turnstile.handleError}

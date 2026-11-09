@@ -13,7 +13,10 @@ import {
   CheckCircle2,
   XCircle,
   ArrowRight,
+  Mail,
 } from "lucide-react";
+import Turnstile from "@/components/ui/Turnstile";
+import { useTurnstile } from "@/lib/hooks/useTurnstile";
 
 /**
  * Página de aceitar convite e criar conta.
@@ -28,7 +31,9 @@ export default function AceitarConvitePage() {
   const token = params?.token as string;
   const tenantSlug = params?.tenant_slug as string;
 
-  const [status, setStatus] = useState<"carregando" | "valido" | "invalido" | "sucesso">(
+  const [status, setStatus] = useState<
+    "carregando" | "valido" | "invalido" | "sucesso" | "confirmacao"
+  >(
     "carregando"
   );
   const [convite, setConvite] = useState<{
@@ -42,8 +47,12 @@ export default function AceitarConvitePage() {
   const [confirmarSenha, setConfirmarSenha] = useState("");
   const [mostrarSenha, setMostrarSenha] = useState(false);
   const [carregando, setCarregando] = useState(false);
+  const [motivoInvalido, setMotivoInvalido] = useState<string | null>(null);
+  const turnstile = useTurnstile();
 
-  // Validar o token ao carregar a página
+  // Conta criada? Exibe estado de sucesso.
+
+  // Validar o token ao carregar a página via servidor (Service Role)
   useEffect(() => {
     async function validarToken() {
       if (!token) {
@@ -52,41 +61,29 @@ export default function AceitarConvitePage() {
       }
 
       try {
-        const supabase = createClient();
-        const { data, error } = await supabase
-          .from("convites")
-          .select(`
-            id,
-            email,
-            empresa_id,
-            cargo_id,
-            usado,
-            expira_em,
-            empresa:empresas!convites_empresa_id_fkey (nome, slug)
-          `)
-          .eq("token", token)
-          .single();
+        const res = await fetch(`/api/convite/validate/${encodeURIComponent(token)}`);
+        const dados = await res.json();
 
-        if (error || !data) {
-          setStatus("invalido");
-          return;
-        }
-
-        if (data.usado) {
-          setStatus("invalido");
-          return;
-        }
-
-        if (new Date(data.expira_em) < new Date()) {
+        if (!res.ok || !dados.valid) {
+          if (res.status === 409) {
+            const motivo = (dados.motivo as string) ?? "";
+            setMotivoInvalido(
+              motivo === "usado"
+                ? "Este convite já foi utilizado."
+                : motivo === "expirado"
+                  ? "Este convite expirou. Solicite um novo ao RH."
+                  : "Este convite não é mais válido."
+            );
+          }
           setStatus("invalido");
           return;
         }
 
         setConvite({
-          email: data.email,
-          empresa_id: data.empresa_id,
-          cargo_id: data.cargo_id,
-          empresa: data.empresa as any,
+          email: dados.convite.email,
+          empresa_id: dados.convite.empresa_id,
+          cargo_id: dados.convite.cargo_id,
+          empresa: dados.convite.empresa,
         });
         setStatus("valido");
       } catch {
@@ -111,28 +108,33 @@ export default function AceitarConvitePage() {
     }
 
     if (!convite) return;
+    if (!turnstile.isVerified || !turnstile.token) {
+      toast.error("Complete a verificação de segurança antes de continuar.");
+      return;
+    }
 
     setCarregando(true);
     try {
       const supabase = createClient();
 
       // Criar conta via Supabase Auth
-      // A trigger handle_new_user usa empresa_id, cargo_id e nome_completo
-      // para criar automaticamente o perfil na tabela perfis.
+      // A trigger handle_new_user valida o `convite_token` e cria o perfil
+      // usando os dados do convite no banco.
       const { data: authData, error: signUpError } =
         await supabase.auth.signUp({
           email: convite.email,
           password: senha,
           options: {
             data: {
-              empresa_id: convite.empresa_id,
-              cargo_id: convite.cargo_id,
+              convite_token: token,
               nome_completo: convite.email.split("@")[0], // fallback; será atualizado pelo colaborador
             },
+            captchaToken: turnstile.token,
           },
         });
 
       if (signUpError) {
+        turnstile.reset();
         if (signUpError.message.includes("already registered")) {
           toast.error(
             "Este e-mail já possui uma conta. Faça login normalmente."
@@ -150,11 +152,14 @@ export default function AceitarConvitePage() {
         return;
       }
 
-      // Marcar convite como usado (a trigger também faz isso, mas garantimos aqui)
-      await supabase
-        .from("convites")
-        .update({ usado: true })
-        .eq("token", token);
+      if (!authData.session) {
+        setStatus("confirmacao");
+        toast.success("Conta criada. Verifique seu e-mail para confirmar o acesso.");
+        return;
+      }
+
+      // A trigger handle_new_user valida o convite e marca como usado.
+      // Nada a fazer aqui (o UPDATE de convites sob RLS pertence ao RH).
 
       setStatus("sucesso");
       toast.success("Conta criada com sucesso! Bem-vindo(a)!");
@@ -194,8 +199,8 @@ export default function AceitarConvitePage() {
             Convite inválido
           </h1>
           <p className="text-gray-600 mb-6">
-            Este link de convite é inválido, já foi utilizado ou expirou. Entre
-            em contato com o RH para solicitar um novo convite.
+            {motivoInvalido ??
+              "Este link de convite é inválido, já foi utilizado ou expirou. Entre em contato com o RH para solicitar um novo convite."}
           </p>
           <button
             onClick={() => router.push(`/c/${tenantSlug}/login`)}
@@ -224,6 +229,31 @@ export default function AceitarConvitePage() {
             em instantes...
           </p>
           <Loader2 className="w-6 h-6 animate-spin text-indigo-600 mx-auto" />
+        </div>
+      </div>
+    );
+  }
+
+  if (status === "confirmacao") {
+    return (
+      <div className="min-h-screen flex items-center justify-center bg-gray-50 p-6">
+        <div className="bg-white rounded-xl shadow-lg p-8 max-w-md w-full text-center">
+          <div className="w-16 h-16 bg-indigo-100 rounded-full flex items-center justify-center mx-auto mb-4">
+            <Mail className="w-8 h-8 text-indigo-600" />
+          </div>
+          <h1 className="text-2xl font-bold text-gray-900 mb-2">
+            Confirme seu e-mail
+          </h1>
+          <p className="text-gray-600 mb-6">
+            Enviamos uma mensagem para {convite?.email}. Confirme o endereço
+            para ativar sua conta e entrar no portal.
+          </p>
+          <button
+            onClick={() => router.push(`/c/${tenantSlug}/login`)}
+            className="px-6 py-2 bg-indigo-600 text-white rounded-lg hover:bg-indigo-700 transition-colors font-medium"
+          >
+            Ir para o Login
+          </button>
         </div>
       </div>
     );
@@ -288,6 +318,13 @@ export default function AceitarConvitePage() {
               />
             </div>
 
+            <Turnstile
+              key={turnstile.resetKey}
+              onVerify={turnstile.handleVerify}
+              onExpire={turnstile.handleExpire}
+              onError={turnstile.handleError}
+            />
+
             {/* Senha */}
             <div>
               <label className="block text-sm font-medium text-gray-700 mb-2 flex items-center gap-2">
@@ -346,6 +383,7 @@ export default function AceitarConvitePage() {
               type="submit"
               disabled={
                 carregando ||
+                !turnstile.isVerified ||
                 senha.length < 8 ||
                 senha !== confirmarSenha
               }

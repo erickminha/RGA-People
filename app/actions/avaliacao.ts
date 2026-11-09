@@ -18,7 +18,7 @@ export async function enviarAutoAvaliacao(
   periodo: string,
   payload: AutoAvaliacaoCompleta
 ): Promise<ActionResult> {
-  const supabase = createClient();
+  const supabase = await createClient();
 
   const {
     data: { user },
@@ -75,7 +75,6 @@ export async function enviarAutoAvaliacao(
     empresa_id: perfil.empresa_id,
     periodo,
     auto_avaliacao: autoAvaliacaoJson,
-    nota_final: parsed.data.nota_auto_avaliacao,
   };
 
   const { error } = existente

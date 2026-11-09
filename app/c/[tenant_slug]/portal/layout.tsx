@@ -1,6 +1,6 @@
 "use client";
 
-import { useState, useEffect } from "react";
+import { useState, useEffect, use, useMemo } from "react";
 import { createClient } from "@/lib/supabase/client";
 import { useRouter } from "next/navigation";
 import Link from "next/link";
@@ -13,6 +13,7 @@ import {
   ShieldCheck, 
   Building2,
   Users,
+  Users2,
   LogOut,
   MessageSquareHeart,
   BarChart3
@@ -21,18 +22,23 @@ import ViewModeSelector from "@/components/modules/admin/ViewModeSelector";
 
 type ViewMode = "super_admin" | "rh" | "colaborador";
 
-export default function PortalLayout({
-  children,
-  params,
-}: {
-  children: React.ReactNode;
-  params: { tenant_slug: string };
-}) {
+export default function PortalLayout(
+  props: {
+    children: React.ReactNode;
+    params: Promise<{ tenant_slug: string }>;
+  }
+) {
+  const params = use(props.params);
+
+  const {
+    children
+  } = props;
+
   const [perfil, setPerfil] = useState<any>(null);
-  const [viewMode, setViewMode] = useState<ViewMode>("super_admin");
+  const [viewMode, setViewMode] = useState<ViewMode>("colaborador");
   const [isLoading, setIsLoading] = useState(true);
   const router = useRouter();
-  const supabase = createClient();
+  const supabase = useMemo(() => createClient(), []);
 
   useEffect(() => {
     const loadData = async () => {
@@ -59,7 +65,7 @@ export default function PortalLayout({
     };
 
     loadData();
-  }, []);
+  }, [params.tenant_slug, router, supabase]);
 
   if (isLoading) {
     return (
@@ -92,12 +98,17 @@ export default function PortalLayout({
   const adminItems = [
     { label: "Painel do RH", icon: ShieldCheck, href: `/c/${params.tenant_slug}/portal/admin` },
     { label: "Colaboradores", icon: Users, href: `/c/${params.tenant_slug}/portal/admin/colaboradores` },
+    { label: "Banco de Talentos", icon: Users2, href: `/c/${params.tenant_slug}/portal/admin/talentos` },
     { label: "Documentos (Gestão)", icon: BookOpen, href: `/c/${params.tenant_slug}/portal/admin/documentos` },
     { label: "Pesquisa de Clima", icon: MessageSquareHeart, href: `/c/${params.tenant_slug}/portal/admin/clima` },
     { label: "Férias (Gestão)", icon: Calendar, href: `/c/${params.tenant_slug}/portal/admin/ferias` },
     { label: "Contracheques (Upload)", icon: FileText, href: `/c/${params.tenant_slug}/portal/admin/contracheques` },
     { label: "Benefícios (Gestão)", icon: Heart, href: `/c/${params.tenant_slug}/portal/admin/beneficios` },
+    { label: "Manual do Colaborador", icon: BookOpen, href: `/c/${params.tenant_slug}/portal/admin/manual` },
   ];
+
+  // RH e Gestor veem o painel de recrutamento (transparência)
+  const isGestor = perfil?.cargo?.permissoes?.gestor && !isSuperAdmin;
 
   return (
     <div className="flex h-screen bg-gray-50">
@@ -124,6 +135,16 @@ export default function PortalLayout({
               <span className="font-medium">{item.label}</span>
             </Link>
           ))}
+
+          {(isRhAdmin || isGestor) && (
+            <Link
+              href={`/c/${params.tenant_slug}/portal/talentos`}
+              className="flex items-center gap-3 px-3 py-2 text-gray-600 hover:bg-emerald-50 hover:text-emerald-700 rounded-lg transition-colors group"
+            >
+              <Users2 className="w-5 h-5 text-gray-400 group-hover:text-emerald-600" />
+              <span className="font-medium">Recrutamento</span>
+            </Link>
+          )}
 
           {showRhMenu && (
             <div className="pt-4 mt-4 border-t border-gray-100 space-y-1">

@@ -16,7 +16,7 @@ function gerarSlug(nome: string): string {
 }
 
 export async function criarEmpresa(formData: FormData) {
-  const supabase = createClient();
+  const supabase = await createClient();
   
   // Validar sessão
   const { data: { session } } = await supabase.auth.getSession();
@@ -105,6 +105,15 @@ export async function criarEmpresa(formData: FormData) {
     console.error("Erro ao criar cargos padrão:", erroCargos);
   }
 
-  // Redirecionar para a página de gestão de empresas
-  redirect(`/c/rga/portal/admin/empresas`);
+  // Redirecionar para a gestão de empresas do tenant de origem do admin
+  const { data: minhaEmpresa } = await supabase
+    .from("perfis")
+    .select("empresa:empresas(slug)")
+    .eq("id", session.user.id)
+    .single();
+
+  const slugOrigem =
+    (minhaEmpresa as any)?.empresa?.slug ?? "rga";
+
+  redirect(`/c/${slugOrigem}/portal/admin/empresas`);
 }

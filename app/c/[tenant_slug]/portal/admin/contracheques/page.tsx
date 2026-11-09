@@ -1,15 +1,16 @@
 "use client";
-import { useState, useEffect, useCallback } from "react";
+import { useState, useEffect, useCallback, use } from "react";
 import { createClient } from "@/lib/supabase/client";
 import { FileText, Upload, Trash2, Loader2, Download } from "lucide-react";
 import UploadContrachequesModal from "@/components/modules/admin/UploadContrachequesModal";
 import toast from "react-hot-toast";
 
-export default function AdminContrachequesPage({
-  params,
-}: {
-  params: { tenant_slug: string };
-}) {
+export default function AdminContrachequesPage(
+  props: {
+    params: Promise<{ tenant_slug: string }>;
+  }
+) {
+  const params = use(props.params);
   const [contracheques, setContracheques] = useState<any[]>([]);
   const [colaboradores, setColaboradores] = useState<any[]>([]);
   const [isModalOpen, setIsModalOpen] = useState(false);

@@ -33,10 +33,10 @@ export async function aprovarSolicitacaoFerias(
   tenantSlug: string,
   solicitacaoId: string
 ): Promise<ActionResult> {
-  const guard = await checkRhAdmin();
+  const guard = await checkRhAdmin(tenantSlug);
   if (!guard) return { success: false, message: "Acesso negado." };
 
-  const supabase = createClient();
+  const supabase = await createClient();
 
   // Buscar solicitação com dados do colaborador e empresa
   const { data: solicitacao } = await supabase
@@ -112,14 +112,14 @@ export async function rejeitarSolicitacaoFerias(
   solicitacaoId: string,
   motivo: string
 ): Promise<ActionResult> {
-  const guard = await checkRhAdmin();
+  const guard = await checkRhAdmin(tenantSlug);
   if (!guard) return { success: false, message: "Acesso negado." };
 
   if (!motivo || motivo.trim().length < 5) {
     return { success: false, message: "Informe um motivo (mín. 5 caracteres)." };
   }
 
-  const supabase = createClient();
+  const supabase = await createClient();
 
   // Buscar solicitação com dados do colaborador
   const { data: solicitacao } = await supabase

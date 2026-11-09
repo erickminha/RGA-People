@@ -4,13 +4,14 @@ import { FileText, AlertCircle } from "lucide-react";
 import ContrachequeList from "@/components/modules/contracheques/ContrachequeList";
 
 interface PageProps {
-  params: { tenant_slug: string };
+  params: Promise<{ tenant_slug: string }>;
 }
 
 export const dynamic = "force-dynamic";
 
-export default async function ContrachequesPage({ params }: PageProps) {
-  const supabase = createClient();
+export default async function ContrachequesPage(props: PageProps) {
+  const params = await props.params;
+  const supabase = await createClient();
 
   const {
     data: { user },

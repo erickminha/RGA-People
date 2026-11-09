@@ -12,10 +12,10 @@ export async function criarBeneficio(
   tenantSlug: string,
   dados: { nome: string; descricao?: string; url_parceiro?: string }
 ): Promise<ActionResult> {
-  const guard = await checkRhAdmin();
+  const guard = await checkRhAdmin(tenantSlug);
   if (!guard) return { success: false, message: "Acesso negado." };
 
-  const supabase = createClient();
+  const supabase = await createClient();
   const { error } = await supabase.from("beneficios").insert({
     empresa_id: guard.empresaId,
     nome: dados.nome,
@@ -34,10 +34,10 @@ export async function excluirBeneficio(
   tenantSlug: string,
   id: string
 ): Promise<ActionResult> {
-  const guard = await checkRhAdmin();
+  const guard = await checkRhAdmin(tenantSlug);
   if (!guard) return { success: false, message: "Acesso negado." };
 
-  const supabase = createClient();
+  const supabase = await createClient();
   const { error } = await supabase
     .from("beneficios")
     .delete()

@@ -30,9 +30,7 @@ declare global {
   }
 }
 
-const SITE_KEY =
-  process.env.NEXT_PUBLIC_TURNSTILE_SITE_KEY ??
-  "0x4AAAAAADrbJ1ryJpqFAlHh";
+const SITE_KEY = process.env.NEXT_PUBLIC_TURNSTILE_SITE_KEY;
 
 export default function Turnstile({
   onVerify,
@@ -45,6 +43,12 @@ export default function Turnstile({
 
   const renderWidget = useCallback(() => {
     if (!containerRef.current || !window.turnstile) return;
+
+    // Segurança: se a site key não está configurada no build, não renderiza.
+    if (!SITE_KEY) {
+      onError?.();
+      return;
+    }
 
     // Limpa widget anterior se existir
     if (widgetIdRef.current) {

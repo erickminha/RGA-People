@@ -23,7 +23,7 @@ export async function criarPesquisaClima(
   tenantSlug: string,
   input: PesquisaClimaInput
 ): Promise<ActionResult> {
-  const guard = await checkRhAdmin();
+  const guard = await checkRhAdmin(tenantSlug);
   if (!guard) return { success: false, message: "Acesso negado." };
 
   const parsed = pesquisaClimaSchema.safeParse(input);
@@ -35,7 +35,7 @@ export async function criarPesquisaClima(
     };
   }
 
-  const supabase = createClient();
+  const supabase = await createClient();
   const { error } = await supabase.from("pesquisas_clima").insert({
     empresa_id: guard.empresaId,
     titulo: parsed.data.titulo,
@@ -71,10 +71,10 @@ export async function alterarStatusPesquisa(
   pesquisaId: string,
   novoStatus: "aberta" | "encerrada"
 ): Promise<ActionResult> {
-  const guard = await checkRhAdmin();
+  const guard = await checkRhAdmin(tenantSlug);
   if (!guard) return { success: false, message: "Acesso negado." };
 
-  const supabase = createClient();
+  const supabase = await createClient();
   const { error } = await supabase
     .from("pesquisas_clima")
     .update({ status: novoStatus })
@@ -107,7 +107,7 @@ export async function responderPesquisaClima(
   tenantSlug: string,
   input: RespostaClimaInput
 ): Promise<ActionResult> {
-  const supabase = createClient();
+  const supabase = await createClient();
 
   const {
     data: { user },

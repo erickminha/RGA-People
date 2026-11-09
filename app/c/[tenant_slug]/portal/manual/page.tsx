@@ -1,15 +1,17 @@
 import { createClient } from "@/lib/supabase/server";
 import { BookOpen } from "lucide-react";
 import { redirect } from "next/navigation";
+import { Markdown } from "@/lib/markdown";
 
 interface PageProps {
-  params: { tenant_slug: string };
+  params: Promise<{ tenant_slug: string }>;
 }
 
 export const dynamic = "force-dynamic";
 
-export default async function ManualPage({ params }: PageProps) {
-  const supabase = createClient();
+export default async function ManualPage(props: PageProps) {
+  const params = await props.params;
+  const supabase = await createClient();
   const { data: { user } } = await supabase.auth.getUser();
   if (!user) redirect(`/c/${params.tenant_slug}/login`);
 
@@ -38,7 +40,7 @@ export default async function ManualPage({ params }: PageProps) {
 
       <article className="bg-white border border-gray-200 rounded-xl p-8 shadow-sm prose prose-blue max-w-none">
         {manual ? (
-          <div dangerouslySetInnerHTML={{ __html: manual.conteudo }} />
+          <Markdown content={manual.conteudo} />
         ) : (
           <div className="text-center py-12 text-gray-500">
             <p>O manual da empresa ainda não foi publicado.</p>

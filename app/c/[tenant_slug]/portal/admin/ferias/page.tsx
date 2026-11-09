@@ -6,14 +6,15 @@ import { ptBR } from "date-fns/locale";
 import AprovacoesFeriasPendentes from "@/components/modules/admin/AprovacoesFeriasPendentes";
 
 interface PageProps {
-  params: { tenant_slug: string };
+  params: Promise<{ tenant_slug: string }>;
 }
 
 export const dynamic = "force-dynamic";
 
-export default async function AdminFeriasPage({ params }: PageProps) {
+export default async function AdminFeriasPage(props: PageProps) {
+  const params = await props.params;
   const guard = await requireRhAdmin(params.tenant_slug);
-  const supabase = createClient();
+  const supabase = await createClient();
 
   // Solicitações pendentes para aprovação
   const { data: pendentes } = await supabase

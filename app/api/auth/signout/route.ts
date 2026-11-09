@@ -6,7 +6,7 @@ import { NextResponse, type NextRequest } from "next/server";
  * Acionada pelo formulário POST no layout do portal.
  */
 export async function POST(request: NextRequest) {
-  const supabase = createClient();
+  const supabase = await createClient();
 
   const {
     data: { user },

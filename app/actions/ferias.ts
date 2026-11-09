@@ -17,7 +17,7 @@ export async function criarSolicitacaoFerias(
   tenantSlug: string,
   input: SolicitacaoFeriasInput
 ): Promise<ActionResult> {
-  const supabase = createClient();
+  const supabase = await createClient();
 
   // 1. Autenticação
   const {
@@ -112,7 +112,7 @@ export async function cancelarSolicitacaoFerias(
   tenantSlug: string,
   solicitacaoId: string
 ): Promise<ActionResult> {
-  const supabase = createClient();
+  const supabase = await createClient();
 
   const {
     data: { user },

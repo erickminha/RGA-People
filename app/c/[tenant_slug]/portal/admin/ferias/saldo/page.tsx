@@ -1,6 +1,6 @@
 "use client";
 
-import { useEffect, useState } from "react";
+import { useCallback, useEffect, useState } from "react";
 import { useParams } from "next/navigation";
 import { createClient } from "@/lib/supabase/client";
 import { Calendar, Users, AlertCircle, Save, Loader2 } from "lucide-react";
@@ -21,11 +21,7 @@ export default function SaldoFeriasPage() {
   const [salvando, setSalvando] = useState(false);
   const [saldos, setSaldos] = useState<Record<string, number>>({});
 
-  useEffect(() => {
-    carregarColaboradores();
-  }, []);
-
-  async function carregarColaboradores() {
+  const carregarColaboradores = useCallback(async () => {
     try {
       const supabase = createClient();
       const { data: empresa } = await supabase
@@ -57,7 +53,11 @@ export default function SaldoFeriasPage() {
     } finally {
       setCarregando(false);
     }
-  }
+  }, [tenantSlug]);
+
+  useEffect(() => {
+    void carregarColaboradores();
+  }, [carregarColaboradores]);
 
   async function salvarSaldos() {
     setSalvando(true);

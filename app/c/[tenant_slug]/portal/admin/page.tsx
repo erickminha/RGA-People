@@ -1,6 +1,6 @@
 "use client";
 
-import { useState, useEffect, useCallback } from "react";
+import { useState, useEffect, useCallback, use } from "react";
 import { createClient } from "@/lib/supabase/client";
 import { useRouter } from "next/navigation";
 import {
@@ -18,11 +18,12 @@ import AtalhosRapidos from "@/components/modules/admin/AtalhosRapidos";
 import AprovacoesFeriasPendentes from "@/components/modules/admin/AprovacoesFeriasPendentes";
 import ConvidarColaboradorModal from "@/components/modules/admin/ConvidarColaboradorModal";
 
-export default function AdminPage({
-  params,
-}: {
-  params: { tenant_slug: string };
-}) {
+export default function AdminPage(
+  props: {
+    params: Promise<{ tenant_slug: string }>;
+  }
+) {
+  const params = use(props.params);
   const [dados, setDados] = useState<any>(null);
   const [isLoading, setIsLoading] = useState(true);
   const [isConvidarOpen, setIsConvidarOpen] = useState(false);

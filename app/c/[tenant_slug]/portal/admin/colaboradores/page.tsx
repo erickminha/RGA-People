@@ -4,18 +4,17 @@ import { Users } from "lucide-react";
 import ColaboradoresTable from "@/components/modules/admin/ColaboradoresTable";
 
 interface PageProps {
-  params: { tenant_slug: string };
-  searchParams: { novo?: string; busca?: string };
+  params: Promise<{ tenant_slug: string }>;
+  searchParams: Promise<{ novo?: string; busca?: string }>;
 }
 
 export const dynamic = "force-dynamic";
 
-export default async function ColaboradoresPage({
-  params,
-  searchParams,
-}: PageProps) {
+export default async function ColaboradoresPage(props: PageProps) {
+  const searchParams = await props.searchParams;
+  const params = await props.params;
   const guard = await requireRhAdmin(params.tenant_slug);
-  const supabase = createClient();
+  const supabase = await createClient();
 
   const busca = searchParams.busca?.trim() ?? "";
 

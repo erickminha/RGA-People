@@ -4,14 +4,15 @@ import { BookOpen } from "lucide-react";
 import GerenciarDocumentos from "@/components/modules/documentos/GerenciarDocumentos";
 
 interface PageProps {
-  params: { tenant_slug: string };
+  params: Promise<{ tenant_slug: string }>;
 }
 
 export const dynamic = "force-dynamic";
 
-export default async function AdminDocumentosPage({ params }: PageProps) {
+export default async function AdminDocumentosPage(props: PageProps) {
+  const params = await props.params;
   const guard = await requireRhAdmin(params.tenant_slug);
-  const supabase = createClient();
+  const supabase = await createClient();
 
   // Documentos da empresa com contagem de aceites
   const { data: documentos } = await supabase

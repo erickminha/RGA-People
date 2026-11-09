@@ -12,10 +12,10 @@ export async function salvarManual(
   tenantSlug: string,
   dados: { titulo: string; conteudo: string }
 ): Promise<ActionResult> {
-  const guard = await checkRhAdmin();
+  const guard = await checkRhAdmin(tenantSlug);
   if (!guard) return { success: false, message: "Acesso negado." };
 
-  const supabase = createClient();
+  const supabase = await createClient();
   
   // Verifica se já existe um manual para atualizar ou criar novo
   const { data: existente } = await supabase

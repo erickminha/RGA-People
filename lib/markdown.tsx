@@ -1,21 +1,13 @@
 import React from "react";
-import { marked } from "marked";
+import ReactMarkdown from "react-markdown";
+import remarkGfm from "remark-gfm";
 
 /**
  * Renderiza Markdown para HTML com classes Tailwind.
- * Usa a biblioteca `marked` (já incluída via markdown no package.json).
+ * HTML bruto é descartado; os elementos Markdown são renderizados como React.
  */
 
 export function Markdown({ content }: { content: string }) {
-  // Configurar marked para gerar HTML com classes Tailwind
-  marked.setOptions({
-    breaks: true,
-    gfm: true,
-  });
-
-  const html = marked(content);
-
-  // Sanitizar e renderizar (em produção, considere usar DOMPurify)
   return (
     <div
       className="prose prose-sm max-w-none
@@ -35,7 +27,10 @@ export function Markdown({ content }: { content: string }) {
         prose-th:bg-gray-100 prose-th:border prose-th:border-gray-300 prose-th:px-4 prose-th:py-2 prose-th:text-left
         prose-td:border prose-td:border-gray-300 prose-td:px-4 prose-td:py-2
       "
-      dangerouslySetInnerHTML={{ __html: html }}
-    />
+    >
+      <ReactMarkdown remarkPlugins={[remarkGfm]} skipHtml>
+        {content}
+      </ReactMarkdown>
+    </div>
   );
 }

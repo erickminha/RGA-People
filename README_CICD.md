@@ -1,5 +1,7 @@
 # 🔧 CI/CD & Governança Git — Portal do Colaborador RGA
 
+> ⚠️ **ATUALIZADO PARA O DEPLOY ATUAL:** este projeto roda em produção no **Netlify** (ver `netlify.toml`), não no Vercel. Os arquivos de workflow do GitHub Actions (`ci.yml`, `deploy-preview.yml`, `deploy-production.yml`) e o `vercel.json` citados abaixo **não estão presentes** neste repositório. Este documento refere-se a uma proposta alternativa (Vercel) mantida como referência.
+
 Pacote complementar com configurações de **CI/CD no GitHub Actions**, **deploy automático no Vercel** e **templates de governança**.
 
 ---

@@ -6,7 +6,7 @@ import HistoricoFeriasTable from "@/components/modules/ferias/HistoricoFeriasTab
 import SolicitacaoFeriasForm from "@/components/modules/ferias/SolicitacaoFeriasForm";
 
 interface PageProps {
-  params: { tenant_slug: string };
+  params: Promise<{ tenant_slug: string }>;
 }
 
 export const dynamic = "force-dynamic";
@@ -88,8 +88,9 @@ function calcularSaldo(
   };
 }
 
-export default async function FeriasPage({ params }: PageProps) {
-  const supabase = createClient();
+export default async function FeriasPage(props: PageProps) {
+  const params = await props.params;
+  const supabase = await createClient();
 
   const {
     data: { user },

@@ -3,13 +3,14 @@ import { redirect, notFound } from "next/navigation";
 import VisualizadorDocumento from "@/components/modules/documentos/VisualizadorDocumento";
 
 interface PageProps {
-  params: { tenant_slug: string; docId: string };
+  params: Promise<{ tenant_slug: string; docId: string }>;
 }
 
 export const dynamic = "force-dynamic";
 
-export default async function DocumentoPage({ params }: PageProps) {
-  const supabase = createClient();
+export default async function DocumentoPage(props: PageProps) {
+  const params = await props.params;
+  const supabase = await createClient();
 
   const {
     data: { user },

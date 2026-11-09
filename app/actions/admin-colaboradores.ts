@@ -3,12 +3,9 @@
 import { createClient } from "@/lib/supabase/server";
 import { createAdminClient } from "@/lib/supabase/admin";
 import { revalidatePath } from "next/cache";
-import { randomBytes } from "crypto";
 import { checkRhAdmin } from "@/lib/auth/guards";
 import {
-  convidarColaboradorSchema,
   editarColaboradorSchema,
-  type ConvidarColaboradorInput,
   type EditarColaboradorInput,
 } from "@/lib/schemas/colaborador.schema";
 
@@ -19,129 +16,13 @@ interface ActionResult {
 }
 
 // ============================================================
-// CONVIDAR COLABORADOR
-// ============================================================
-export async function convidarColaborador(
-  tenantSlug: string,
-  input: ConvidarColaboradorInput
-): Promise<ActionResult> {
-  const guard = await checkRhAdmin();
-  if (!guard) {
-    return { success: false, message: "Acesso negado." };
-  }
-
-  const parsed = convidarColaboradorSchema.safeParse(input);
-  if (!parsed.success) {
-    return {
-      success: false,
-      message: "Dados inválidos.",
-      fieldErrors: parsed.error.flatten().fieldErrors,
-    };
-  }
-
-  const supabase = createClient();
-  const admin = createAdminClient();
-
-  // Verifica se já existe perfil com esse email na empresa
-  const { data: existente } = await supabase
-    .from("perfis")
-    .select("id")
-    .eq("email", parsed.data.email)
-    .eq("empresa_id", guard.empresaId)
-    .maybeSingle();
-
-  if (existente) {
-    return {
-      success: false,
-      message: "Já existe um colaborador com este email nesta empresa.",
-    };
-  }
-
-  // Verifica se já há convite pendente
-  const { data: convitePendente } = await supabase
-    .from("convites")
-    .select("id")
-    .eq("email", parsed.data.email)
-    .eq("empresa_id", guard.empresaId)
-    .eq("usado", false)
-    .gt("expira_em", new Date().toISOString())
-    .maybeSingle();
-
-  if (convitePendente) {
-    return {
-      success: false,
-      message: "Já há um convite pendente para este email.",
-    };
-  }
-
-  // Gera token único + validade 7 dias
-  const token = randomBytes(32).toString("hex");
-  const expiraEm = new Date(Date.now() + 7 * 24 * 60 * 60 * 1000);
-
-  // Insere convite
-  const { error: conviteError } = await supabase.from("convites").insert({
-    empresa_id: guard.empresaId,
-    email: parsed.data.email,
-    token,
-    expira_em: expiraEm.toISOString(),
-    usado: false,
-  });
-
-  if (conviteError) {
-    console.error("[convite] insert:", conviteError.message);
-    return { success: false, message: "Erro ao criar convite." };
-  }
-
-  // Dispara email via Supabase Auth (magic link com redirect)
-  const redirectUrl = `${
-    process.env.NEXT_PUBLIC_SITE_URL ?? "http://localhost:3000"
-  }/c/${tenantSlug}/convite/${token}`;
-
-  const { error: inviteError } = await admin.auth.admin.inviteUserByEmail(
-    parsed.data.email,
-    {
-      redirectTo: redirectUrl,
-      data: {
-        nome_completo: parsed.data.nome_completo,
-        empresa_id: guard.empresaId,
-        cargo_id: parsed.data.cargo_id,
-        convite_token: token,
-      },
-    }
-  );
-
-  if (inviteError) {
-    console.error("[auth invite]:", inviteError.message);
-    // Não falha o fluxo: o convite está na DB, RH pode reenviar manualmente
-  }
-
-  // Audit log
-  await supabase.from("audit_logs").insert({
-    acao: "CONVIDAR_COLABORADOR",
-    usuario_id: guard.userId,
-    empresa_id: guard.empresaId,
-    metadados: {
-      email: parsed.data.email,
-      cargo_id: parsed.data.cargo_id,
-    },
-  });
-
-  revalidatePath(`/c/${tenantSlug}/portal/admin/colaboradores`);
-
-  return {
-    success: true,
-    message: `Convite enviado para ${parsed.data.email}!`,
-  };
-}
-
-// ============================================================
 // EDITAR COLABORADOR (cargo, nome, salário)
 // ============================================================
 export async function editarColaborador(
   tenantSlug: string,
   input: EditarColaboradorInput
 ): Promise<ActionResult> {
-  const guard = await checkRhAdmin();
+  const guard = await checkRhAdmin(tenantSlug);
   if (!guard) return { success: false, message: "Acesso negado." };
 
   const parsed = editarColaboradorSchema.safeParse(input);
@@ -153,7 +34,7 @@ export async function editarColaborador(
     };
   }
 
-  const supabase = createClient();
+  const supabase = await createClient();
 
   // Valida que o perfil é da mesma empresa
   const { data: alvo } = await supabase
@@ -208,7 +89,7 @@ export async function inativarColaborador(
   tenantSlug: string,
   perfilId: string
 ): Promise<ActionResult> {
-  const guard = await checkRhAdmin();
+  const guard = await checkRhAdmin(tenantSlug);
   if (!guard) return { success: false, message: "Acesso negado." };
 
   if (perfilId === guard.userId) {
@@ -218,7 +99,7 @@ export async function inativarColaborador(
     };
   }
 
-  const supabase = createClient();
+  const supabase = await createClient();
 
   const { error } = await supabase
     .from("perfis")
@@ -230,12 +111,19 @@ export async function inativarColaborador(
     return { success: false, message: "Erro ao inativar." };
   }
 
-  // Revoga sessão via admin client (boa prática)
-  try {
-    const admin = createAdminClient();
-    await admin.auth.admin.signOut(perfilId);
-  } catch {
-    /* silent */
+  const admin = createAdminClient();
+  const { error: banError } = await admin.auth.admin.updateUserById(perfilId, {
+    ban_duration: "876000h",
+  });
+  if (banError) {
+    const { error: restoreError } = await supabase
+      .from("perfis")
+      .update({ ativo: true })
+      .eq("id", perfilId)
+      .eq("empresa_id", guard.empresaId);
+    if (restoreError) console.error("[inativar colaborador] rollback:", restoreError.message);
+    console.error("[inativar colaborador] bloquear login:", banError.message);
+    return { success: false, message: "Não foi possível bloquear o acesso. Tente novamente." };
   }
 
   await supabase.from("audit_logs").insert({
@@ -256,10 +144,10 @@ export async function reativarColaborador(
   tenantSlug: string,
   perfilId: string
 ): Promise<ActionResult> {
-  const guard = await checkRhAdmin();
+  const guard = await checkRhAdmin(tenantSlug);
   if (!guard) return { success: false, message: "Acesso negado." };
 
-  const supabase = createClient();
+  const supabase = await createClient();
   const { error } = await supabase
     .from("perfis")
     .update({ ativo: true })
@@ -267,6 +155,21 @@ export async function reativarColaborador(
     .eq("empresa_id", guard.empresaId);
 
   if (error) return { success: false, message: "Erro ao reativar." };
+
+  const admin = createAdminClient();
+  const { error: unbanError } = await admin.auth.admin.updateUserById(perfilId, {
+    ban_duration: "none",
+  });
+  if (unbanError) {
+    const { error: restoreError } = await supabase
+      .from("perfis")
+      .update({ ativo: false })
+      .eq("id", perfilId)
+      .eq("empresa_id", guard.empresaId);
+    if (restoreError) console.error("[reativar colaborador] rollback:", restoreError.message);
+    console.error("[reativar colaborador] liberar login:", unbanError.message);
+    return { success: false, message: "Não foi possível reativar o acesso. Tente novamente." };
+  }
 
   await supabase.from("audit_logs").insert({
     acao: "REATIVAR_COLABORADOR",

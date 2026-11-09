@@ -1,4 +1,4 @@
--- Migration 004: Manual do Colaborador
+-- Migration 0085: Manual do Colaborador
 -- Permite que o RH publique um manual ou código de conduta para a empresa.
 
 CREATE TABLE IF NOT EXISTS public.manuais (
@@ -13,9 +13,11 @@ CREATE TABLE IF NOT EXISTS public.manuais (
 ALTER TABLE public.manuais ENABLE ROW LEVEL SECURITY;
 
 -- Políticas
+DROP POLICY IF EXISTS "manuais_select_tenant" ON public.manuais;
 CREATE POLICY "manuais_select_tenant" ON public.manuais
   FOR SELECT USING (empresa_id = public.get_empresa_id());
 
+DROP POLICY IF EXISTS "manuais_manage_rh" ON public.manuais;
 CREATE POLICY "manuais_manage_rh" ON public.manuais
   FOR ALL USING (
     empresa_id = public.get_empresa_id()

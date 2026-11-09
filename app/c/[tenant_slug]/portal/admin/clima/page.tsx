@@ -6,18 +6,17 @@ import ResultadosClima from "@/components/modules/clima/ResultadosClima";
 import type { PerguntaClima } from "@/lib/schemas/clima.schema";
 
 interface PageProps {
-  params: { tenant_slug: string };
-  searchParams: { pesquisa?: string };
+  params: Promise<{ tenant_slug: string }>;
+  searchParams: Promise<{ pesquisa?: string }>;
 }
 
 export const dynamic = "force-dynamic";
 
-export default async function AdminClimaPage({
-  params,
-  searchParams,
-}: PageProps) {
+export default async function AdminClimaPage(props: PageProps) {
+  const searchParams = await props.searchParams;
+  const params = await props.params;
   const guard = await requireRhAdmin(params.tenant_slug);
-  const supabase = createClient();
+  const supabase = await createClient();
 
   // Pesquisas da empresa
   const { data: pesquisasRaw } = await supabase
