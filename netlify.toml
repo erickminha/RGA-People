@@ -3,7 +3,7 @@
 
 [build.environment]
   NODE_VERSION = "24.18.0"
-  NPM_FLAGS = "--no-audit --no-fund --prefer-offline --progress=false --omit=optional"
+  NPM_FLAGS = "--no-audit --no-fund --prefer-offline --progress=false --ignore-scripts"
   NEXT_TELEMETRY_DISABLED = "1"
   SECRETS_SCAN_ENABLED = "false"
 
